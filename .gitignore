@@ -1,0 +1,14 @@
+**/.spyproject
+**/.ipynb_checkpoints
+**/__pycache__
+**/*.cmd
+**/*.o
+**/*.stpl
+**/*.vscode
+/examples/**/numenv
+/examples/**/*.stpl
+/examples/**/csv_files
+/examples/**/results
+/examples/**/config_inputs
+/smbd/numenv/cpp_eigen/numerics/tests
+/tests
