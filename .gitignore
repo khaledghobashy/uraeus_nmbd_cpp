@@ -5,6 +5,7 @@
 **/*.o
 **/*.stpl
 **/*.vscode
+**/build
 /examples/**/numenv
 /examples/**/*.stpl
 /examples/**/csv_files
