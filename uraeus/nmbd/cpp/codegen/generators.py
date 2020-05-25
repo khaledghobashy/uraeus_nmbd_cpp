@@ -224,13 +224,18 @@ class template_codegen(abstract_generator):
                 #include <map>
                 #include <vector>
                 
-                #include "smbd/euler_parameters.hpp"
-                #include "smbd/spatial_algebra.hpp"
-                #include "smbd/helpers.hpp"
+                #include <uraeus/euler_parameters.hpp>
+                #include <uraeus/spatial_algebra.hpp>
+                #include <uraeus/helpers.hpp>
+
+                #include <uraeus/systems/configuration.hpp>
+
                 
                 typedef std::map<std::string, std::string> Dict_SS;
                 typedef std::map<std::string, int> Dict_SI;
                 
+                // Declaring the Configuration Class and its numerical objects.
+                // ============================================================
                 class Configuration
                 {{
                 
@@ -600,15 +605,15 @@ class template_codegen(abstract_generator):
         indent = ''
                 
         
-        self_inserter = self._insert_string('this-> ')
+        self_inserter = self._insert_string('this-> ConfigInputs.get')
         
         q_pattern = '|'.join(self.gen_coordinates_sym)
-        q_equalities = ', \n'.join(self.gen_coordinates_sym)
+        q_equalities = ', \n'.join(['("%s", this-> %s)'%(q, q) for q in self.gen_coordinates_sym])
         q_equalities = re.sub(q_pattern, self_inserter, q_equalities)
         q_equalities = textwrap.indent(q_equalities, 8*' ').lstrip()
         
         qd_pattern = '|'.join(self.gen_velocities_sym)
-        qd_equalities = ', \n'.join(self.gen_velocities_sym)
+        qd_equalities = ', \n'.join(['("%s", this-> %s)'%(q, q) for q in self.gen_velocities_sym])
         qd_equalities = re.sub(qd_pattern, self_inserter, qd_equalities)
         qd_equalities = textwrap.indent(qd_equalities, 8*' ').lstrip()
         

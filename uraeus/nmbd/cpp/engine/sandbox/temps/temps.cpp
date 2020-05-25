@@ -1,11 +1,9 @@
 #include <iostream>
 #include <vector>
 
-#include "smbd/helpers.hpp"
-#include "smbd/euler_parameters.hpp"
-#include "smbd/geometries.hpp"
-
-
+#include "uraeus/helpers.hpp"
+#include "uraeus/euler_parameters.hpp"
+#include "uraeus/geometries.hpp"
 
 
 int main()
