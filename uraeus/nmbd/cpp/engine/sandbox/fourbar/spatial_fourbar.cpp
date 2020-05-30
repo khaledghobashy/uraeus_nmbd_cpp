@@ -2,29 +2,81 @@
 #include "spatial_fourbar.hpp"
 
 
+void Configuration::constructFromJSON(std::string fileName)
+{
+    std::cout << "Constructing Configuration Inputs" << std::endl;
+    this->ConfigInputs.constructFromJSON(fileName);
+
+    std::cout << "Populating Configuration Arguments!" << std::endl;
+    this->populateArguments();
+};
+
+
+void Configuration::populateArguments()
+{
+    ConfigInputs.get("R_rbs_l1", R_rbs_l1);
+    ConfigInputs.get("P_rbs_l1", P_rbs_l1);
+    ConfigInputs.get("Rd_rbs_l1", Rd_rbs_l1);
+    ConfigInputs.get("Pd_rbs_l1", Pd_rbs_l1);
+    ConfigInputs.get("Rdd_rbs_l1", Rdd_rbs_l1);
+    ConfigInputs.get("Pdd_rbs_l1", Pdd_rbs_l1);
+    ConfigInputs.get("m_rbs_l1", m_rbs_l1);
+    ConfigInputs.get("Jbar_rbs_l1", Jbar_rbs_l1);
+    ConfigInputs.get("R_rbs_l2", R_rbs_l2);
+    ConfigInputs.get("P_rbs_l2", P_rbs_l2);
+    ConfigInputs.get("Rd_rbs_l2", Rd_rbs_l2);
+    ConfigInputs.get("Pd_rbs_l2", Pd_rbs_l2);
+    ConfigInputs.get("Rdd_rbs_l2", Rdd_rbs_l2);
+    ConfigInputs.get("Pdd_rbs_l2", Pdd_rbs_l2);
+    ConfigInputs.get("m_rbs_l2", m_rbs_l2);
+    ConfigInputs.get("Jbar_rbs_l2", Jbar_rbs_l2);
+    ConfigInputs.get("R_rbs_l3", R_rbs_l3);
+    ConfigInputs.get("P_rbs_l3", P_rbs_l3);
+    ConfigInputs.get("Rd_rbs_l3", Rd_rbs_l3);
+    ConfigInputs.get("Pd_rbs_l3", Pd_rbs_l3);
+    ConfigInputs.get("Rdd_rbs_l3", Rdd_rbs_l3);
+    ConfigInputs.get("Pdd_rbs_l3", Pdd_rbs_l3);
+    ConfigInputs.get("m_rbs_l3", m_rbs_l3);
+    ConfigInputs.get("Jbar_rbs_l3", Jbar_rbs_l3);
+    ConfigInputs.get("ax1_jcs_a", ax1_jcs_a);
+    ConfigInputs.get("pt1_jcs_a", pt1_jcs_a);
+    ConfigInputs.get("ax1_jcs_a", ax1_jcs_a);
+    ConfigInputs.get("UF_mcs_act", UF_mcs_act);
+    ConfigInputs.get("ax1_jcs_b", ax1_jcs_b);
+    ConfigInputs.get("pt1_jcs_b", pt1_jcs_b);
+    ConfigInputs.get("ax1_jcs_c", ax1_jcs_c);
+    ConfigInputs.get("ax2_jcs_c", ax2_jcs_c);
+    ConfigInputs.get("pt1_jcs_c", pt1_jcs_c);
+    ConfigInputs.get("ax1_jcs_d", ax1_jcs_d);
+    ConfigInputs.get("pt1_jcs_d", pt1_jcs_d);
+};
+
 void Configuration::set_inital_configuration()
 {
+    this-> R_ground << 0, 0, 0 ;
+    this-> P_ground << 1, 0, 0, 0 ;
+
     this-> q.resize(28);
     this-> q << 
-        this-> R_ground, 
-        this-> P_ground, 
-        this-> R_rbs_l1, 
-        this-> P_rbs_l1, 
-        this-> R_rbs_l2, 
-        this-> P_rbs_l2, 
-        this-> R_rbs_l3, 
-        this-> P_rbs_l3;
+        this->R_ground, 
+        this->P_ground, 
+        this->R_rbs_l1, 
+        this->P_rbs_l1, 
+        this->R_rbs_l2, 
+        this->P_rbs_l2, 
+        this->R_rbs_l3, 
+        this->P_rbs_l3;
 
     this-> qd.resize(28);
     this-> qd << 
-        this-> Rd_ground, 
-        this-> Pd_ground, 
-        this-> Rd_rbs_l1, 
-        this-> Pd_rbs_l1, 
-        this-> Rd_rbs_l2, 
-        this-> Pd_rbs_l2, 
-        this-> Rd_rbs_l3, 
-        this-> Pd_rbs_l3;
+        this->Rd_ground, 
+        this->Pd_ground, 
+        this->Rd_rbs_l1, 
+        this->Pd_rbs_l1, 
+        this->Rd_rbs_l2, 
+        this->Pd_rbs_l2, 
+        this->Rd_rbs_l3, 
+        this->Pd_rbs_l3;
 };
 
 
@@ -190,6 +242,8 @@ void Topology::eval_constants()
 {
     auto& config = this-> config;
 
+    this-> R_ground << 0, 0, 0 ;
+    this-> P_ground << 1, 0, 0, 0 ;
     this-> Pg_ground << 1, 0, 0, 0 ;
     this-> m_ground = 1.0 ;
     this-> Jbar_ground << 1, 0, 0, 0, 1, 0, 0, 0, 1 ;
@@ -197,11 +251,11 @@ void Topology::eval_constants()
     this-> F_rbs_l2_gravity << 0, 0, -9810.0*config.m_rbs_l2 ;
     this-> F_rbs_l3_gravity << 0, 0, -9810.0*config.m_rbs_l3 ;
 
-    this-> Mbar_ground_jcs_a << A(config.P_ground).transpose() * triad(config.ax1_jcs_a) ;
+    this-> Mbar_ground_jcs_a << A(this-> P_ground).transpose() * triad(config.ax1_jcs_a) ;
     this-> Mbar_rbs_l1_jcs_a << A(config.P_rbs_l1).transpose() * triad(config.ax1_jcs_a) ;
-    this-> ubar_ground_jcs_a << (A(config.P_ground).transpose() * config.pt1_jcs_a + -1 * A(config.P_ground).transpose() * config.R_ground) ;
+    this-> ubar_ground_jcs_a << (A(this-> P_ground).transpose() * config.pt1_jcs_a + -1 * A(this-> P_ground).transpose() * this-> R_ground) ;
     this-> ubar_rbs_l1_jcs_a << (A(config.P_rbs_l1).transpose() * config.pt1_jcs_a + -1 * A(config.P_rbs_l1).transpose() * config.R_rbs_l1) ;
-    this-> Mbar_ground_jcs_a << A(config.P_ground).transpose() * triad(config.ax1_jcs_a) ;
+    this-> Mbar_ground_jcs_a << A(this-> P_ground).transpose() * triad(config.ax1_jcs_a) ;
     this-> Mbar_rbs_l1_jcs_a << A(config.P_rbs_l1).transpose() * triad(config.ax1_jcs_a) ;
     this-> Mbar_rbs_l1_jcs_b << A(config.P_rbs_l1).transpose() * triad(config.ax1_jcs_b) ;
     this-> Mbar_rbs_l2_jcs_b << A(config.P_rbs_l2).transpose() * triad(config.ax1_jcs_b) ;
@@ -212,9 +266,9 @@ void Topology::eval_constants()
     this-> ubar_rbs_l2_jcs_c << (A(config.P_rbs_l2).transpose() * config.pt1_jcs_c + -1 * A(config.P_rbs_l2).transpose() * config.R_rbs_l2) ;
     this-> ubar_rbs_l3_jcs_c << (A(config.P_rbs_l3).transpose() * config.pt1_jcs_c + -1 * A(config.P_rbs_l3).transpose() * config.R_rbs_l3) ;
     this-> Mbar_rbs_l3_jcs_d << A(config.P_rbs_l3).transpose() * triad(config.ax1_jcs_d) ;
-    this-> Mbar_ground_jcs_d << A(config.P_ground).transpose() * triad(config.ax1_jcs_d) ;
+    this-> Mbar_ground_jcs_d << A(this-> P_ground).transpose() * triad(config.ax1_jcs_d) ;
     this-> ubar_rbs_l3_jcs_d << (A(config.P_rbs_l3).transpose() * config.pt1_jcs_d + -1 * A(config.P_rbs_l3).transpose() * config.R_rbs_l3) ;
-    this-> ubar_ground_jcs_d << (A(config.P_ground).transpose() * config.pt1_jcs_d + -1 * A(config.P_ground).transpose() * config.R_ground) ;
+    this-> ubar_ground_jcs_d << (A(this-> P_ground).transpose() * config.pt1_jcs_d + -1 * A(this-> P_ground).transpose() * this-> R_ground) ;
 };
 
 void Topology::eval_pos_eq()

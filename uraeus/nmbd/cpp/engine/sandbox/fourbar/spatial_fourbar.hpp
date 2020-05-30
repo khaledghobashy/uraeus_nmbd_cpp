@@ -1,67 +1,78 @@
 
+#pragma once
+
+// Standard Library Includes.
 #include <map>
 #include <vector>
 
-#include <uraeus/euler_parameters.hpp>
-#include <uraeus/spatial_algebra.hpp>
-#include <uraeus/helpers.hpp>
+// uraeus library includes.
+#include <uraeus/numerics/euler_parameters.hpp>
+#include <uraeus/numerics/spatial_algebra.hpp>
+#include <uraeus/solvers/helpers.hpp>
 
 #include <uraeus/systems/configuration.hpp>
+
 
 typedef std::map<std::string, std::string> Dict_SS;
 typedef std::map<std::string, int> Dict_SI;
 
+// Declaring the Configuration Class and its numerical objects.
+// ============================================================
 class Configuration
 {
 
 public:
-    Eigen::VectorXd q;
-    Eigen::VectorXd qd;
     ConfigurationAssembler ConfigInputs;
     void set_inital_configuration();
-    void loadJSONFile(std::string fileName);
+    void constructFromJSON(std::string fileName);                
+
+private:
+    void populateArguments();
 
 public:
-    Eigen::Matrix<double, 3, 3> Jbar_rbs_l2 ;
-    Eigen::Vector4d Pd_rbs_l1 ;
-    Eigen::Matrix<double, 3, 3> Jbar_rbs_l1 ;
-    Eigen::Vector4d P_ground ;
-    Eigen::Vector3d pt1_jcs_a ;
-    Eigen::Vector3d Rd_rbs_l3 ;
-    Eigen::Vector3d R_ground ;
-    Eigen::Vector3d ax1_jcs_a ;
-    Eigen::Vector4d P_rbs_l3 ;
-    Eigen::Vector3d Rd_ground ;
-    Eigen::Vector4d Pdd_ground ;
-    Eigen::Vector4d Pdd_rbs_l1 ;
-    Eigen::Vector3d pt1_jcs_b ;
-    Eigen::Vector3d Rdd_rbs_l2 ;
-    Eigen::Vector3d pt1_jcs_c ;
-    Eigen::Vector3d ax1_jcs_c ;
-    Eigen::Vector3d R_rbs_l2 ;
-    Eigen::Vector3d ax1_jcs_b ;
-    Eigen::Vector4d Pdd_rbs_l2 ;
-    Eigen::Vector4d P_rbs_l2 ;
-    Eigen::Vector3d R_rbs_l3 ;
-    Eigen::Vector4d Pd_rbs_l3 ;
-    Eigen::Vector3d Rdd_ground ;
-    Eigen::Vector4d Pd_rbs_l2 ;
-    Eigen::Vector3d Rd_rbs_l1 ;
-    Eigen::Vector3d Rdd_rbs_l1 ;
-    double m_rbs_l3 ;
-    std::function<double(double)> UF_mcs_act ;
-    Eigen::Vector3d R_rbs_l1 ;
-    Eigen::Vector3d pt1_jcs_d ;
-    double m_rbs_l1 ;
+    Eigen::VectorXd q;
+    Eigen::VectorXd qd;
+
+    Eigen::Vector3d R_ground {0, 0, 0};
+    Eigen::Vector4d P_ground {1, 0, 0, 0};
+
+    Eigen::Vector3d Rd_ground {0, 0, 0};
+    Eigen::Vector4d Pd_ground {0, 0, 0, 0};
+
     Eigen::Vector4d P_rbs_l1 ;
-    Eigen::Vector4d Pd_ground ;
-    double m_rbs_l2 ;
-    Eigen::Vector3d ax1_jcs_d ;
-    Eigen::Matrix<double, 3, 3> Jbar_rbs_l3 ;
+    Eigen::Vector4d Pd_rbs_l2 ;
     Eigen::Vector3d ax2_jcs_c ;
+    Eigen::Vector3d Rd_rbs_l1 ;
+    Eigen::Matrix<double, 3, 3> Jbar_rbs_l3 ;
+    Eigen::Vector3d R_rbs_l2 ;
+    Eigen::Vector3d ax1_jcs_a ;
+    Eigen::Vector4d P_rbs_l2 ;
+    Eigen::Vector4d Pdd_rbs_l1 ;
+    std::function<double(double)> UF_mcs_act ;
+    double m_rbs_l1 ;
+    Eigen::Vector3d ax1_jcs_d ;
+    Eigen::Vector4d Pd_rbs_l3 ;
+    Eigen::Vector3d ax1_jcs_b ;
+    Eigen::Vector4d P_rbs_l3 ;
+    double m_rbs_l2 ;
     Eigen::Vector3d Rd_rbs_l2 ;
+    Eigen::Matrix<double, 3, 3> Jbar_rbs_l1 ;
+    Eigen::Vector3d pt1_jcs_d ;
+    Eigen::Vector3d Rdd_rbs_l2 ;
+    Eigen::Vector4d Pdd_rbs_l2 ;
+    Eigen::Vector3d ax1_jcs_c ;
+    Eigen::Vector3d R_rbs_l1 ;
     Eigen::Vector3d Rdd_rbs_l3 ;
+    Eigen::Matrix<double, 3, 3> Jbar_rbs_l2 ;
+    Eigen::Vector3d pt1_jcs_c ;
+    Eigen::Vector3d Rdd_rbs_l1 ;
+    Eigen::Vector3d pt1_jcs_b ;
     Eigen::Vector4d Pdd_rbs_l3 ;
+    double m_rbs_l3 ;
+    Eigen::Vector3d Rd_rbs_l3 ;
+    Eigen::Vector4d Pd_rbs_l1 ;
+    Eigen::Vector3d pt1_jcs_a ;
+    Eigen::Vector3d R_rbs_l3 ;
 
 };
 
@@ -137,8 +148,6 @@ public:
 
 // Topology Generalized Coordinates (R and P vectors).
 public:
-    Eigen::Vector3d R_ground ;
-    Eigen::Vector4d P_ground ;
     Eigen::Vector3d R_rbs_l1 ;
     Eigen::Vector4d P_rbs_l1 ;
     Eigen::Vector3d R_rbs_l2 ;
@@ -170,27 +179,29 @@ public:
 
 // Configuration Constants.
 public:    
-    Eigen::Vector3d ubar_rbs_l3_jcs_d ;
-    Eigen::Vector3d ubar_ground_jcs_a ;
-    Eigen::Vector3d F_rbs_l1_gravity ;
-    Eigen::Matrix3d Mbar_rbs_l2_jcs_c ;
-    Eigen::Vector3d ubar_rbs_l1_jcs_a ;
-    Eigen::Vector3d ubar_ground_jcs_d ;
-    Eigen::Vector3d ubar_rbs_l2_jcs_b ;
-    double m_ground ;
-    Eigen::Matrix3d Mbar_ground_jcs_a ;
+    Eigen::Vector4d P_ground ;
     Eigen::Vector3d ubar_rbs_l2_jcs_c ;
-    Eigen::Matrix3d Mbar_ground_jcs_d ;
-    Eigen::Vector4d Pg_ground ;
-    Eigen::Vector3d F_rbs_l3_gravity ;
-    Eigen::Matrix3d Mbar_rbs_l1_jcs_b ;
-    Eigen::Matrix3d Mbar_rbs_l3_jcs_c ;
-    Eigen::Matrix3d Mbar_rbs_l3_jcs_d ;
+    Eigen::Vector3d ubar_rbs_l1_jcs_a ;
+    Eigen::Matrix<double, 3, 3> Jbar_ground ;
+    Eigen::Matrix3d Mbar_rbs_l2_jcs_c ;
+    Eigen::Vector3d R_ground ;
     Eigen::Vector3d ubar_rbs_l1_jcs_b ;
     Eigen::Vector3d F_rbs_l2_gravity ;
-    Eigen::Vector3d ubar_rbs_l3_jcs_c ;
+    Eigen::Matrix3d Mbar_ground_jcs_d ;
     Eigen::Matrix3d Mbar_rbs_l2_jcs_b ;
+    Eigen::Vector3d ubar_rbs_l2_jcs_b ;
+    Eigen::Vector3d ubar_rbs_l3_jcs_c ;
+    Eigen::Vector3d ubar_ground_jcs_a ;
+    Eigen::Vector3d ubar_rbs_l3_jcs_d ;
+    Eigen::Vector3d F_rbs_l1_gravity ;
+    Eigen::Matrix3d Mbar_rbs_l1_jcs_b ;
+    Eigen::Vector4d Pg_ground ;
+    Eigen::Vector3d F_rbs_l3_gravity ;
     Eigen::Matrix3d Mbar_rbs_l1_jcs_a ;
-    Eigen::Matrix<double, 3, 3> Jbar_ground ;
+    double m_ground ;
+    Eigen::Matrix3d Mbar_rbs_l3_jcs_c ;
+    Eigen::Matrix3d Mbar_rbs_l3_jcs_d ;
+    Eigen::Vector3d ubar_ground_jcs_d ;
+    Eigen::Matrix3d Mbar_ground_jcs_a ;
 
 };
