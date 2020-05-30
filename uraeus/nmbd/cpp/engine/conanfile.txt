@@ -1,5 +1,4 @@
 [requires]
-nlohmann_json/3.7.3
 rapidjson/1.1.0
 
 [generators]

@@ -7,8 +7,8 @@ project(uraeus  VERSION 0.0.1
 add_definitions("-std=c++17")
 
 add_subdirectory(src)
-add_subdirectory(sandbox/temps)
-add_subdirectory(sandbox/jsonread)
 add_subdirectory(sandbox/configuration)
 add_subdirectory(sandbox/fourbar)
+add_subdirectory(sandbox/double_wishbone)
+add_subdirectory(sandbox/double_wishbone/cythonized_2/cpp_src)
 

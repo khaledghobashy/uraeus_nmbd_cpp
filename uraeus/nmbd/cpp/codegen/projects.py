@@ -12,7 +12,7 @@ import shutil
 import textwrap
 
 # Local applicataion imports
-from smbd import pkg_path
+# from smbd import pkg_path
 
 # Local directories imports
 from . import generators

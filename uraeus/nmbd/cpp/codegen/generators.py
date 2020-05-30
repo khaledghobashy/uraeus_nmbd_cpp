@@ -221,12 +221,16 @@ class template_codegen(abstract_generator):
             
     def write_header_class(self):
         text = '''
+                #pragma once
+
+                // Standard Library Includes.
                 #include <map>
                 #include <vector>
                 
-                #include <uraeus/euler_parameters.hpp>
-                #include <uraeus/spatial_algebra.hpp>
-                #include <uraeus/helpers.hpp>
+                // uraeus library includes.
+                #include <uraeus/numerics/euler_parameters.hpp>
+                #include <uraeus/numerics/spatial_algebra.hpp>
+                #include <uraeus/solvers/helpers.hpp>
 
                 #include <uraeus/systems/configuration.hpp>
 
@@ -240,11 +244,23 @@ class template_codegen(abstract_generator):
                 {{
                 
                 public:
+                    ConfigurationAssembler ConfigInputs;
+                    void set_inital_configuration();
+                    void constructFromJSON(std::string fileName);                
+                
+                private:
+                    void populateArguments();
+
+                public:
                     Eigen::VectorXd q;
                     Eigen::VectorXd qd;
-                    void set_inital_configuration();                
-                
-                public:
+
+                    Eigen::Vector3d R_ground {{0, 0, 0}};
+                    Eigen::Vector4d P_ground {{1, 0, 0, 0}};
+                    
+                    Eigen::Vector3d Rd_ground {{0, 0, 0}};
+                    Eigen::Vector4d Pd_ground {{0, 0, 0, 0}};
+
                     {primary_arguments}
                     
                 }};
@@ -348,7 +364,7 @@ class template_codegen(abstract_generator):
 
         
         coordinates = '\n'.join(['%s ;'%p._print(i.lhs, declare=True) for i in
-                                 self.gen_coordinates_exp])
+                                 self.gen_coordinates_exp[2:]])
         coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
 
         velocities = '\n'.join(['%s ;'%p._print(i.lhs, declare=True) for i in 
@@ -587,8 +603,26 @@ class template_codegen(abstract_generator):
 
     def write_configuration_setter(self):
         text = '''
+                void Configuration::constructFromJSON(std::string fileName)
+                {{
+                    std::cout << "Constructing Configuration Inputs" << std::endl;
+                    this->ConfigInputs.constructFromJSON(fileName);
+
+                    std::cout << "Populating Configuration Arguments!" << std::endl;
+                    this->populateArguments();
+                }};
+
+
+                void Configuration::populateArguments()
+                {{
+                    {primary_arguments}
+                }};
+
                 void Configuration::set_inital_configuration()
                 {{
+                    this-> R_ground << 0, 0, 0 ;
+                    this-> P_ground << 1, 0, 0, 0 ;
+
                     this-> q.resize({n});
                     this-> q << 
                         {q_equalities};
@@ -605,19 +639,24 @@ class template_codegen(abstract_generator):
         indent = ''
                 
         
-        self_inserter = self._insert_string('this-> ConfigInputs.get')
+        self_inserter = self._insert_string('this->')
         
+        primary_arguments = '\n'.join(['ConfigInputs.get("%s", %s);'%(i, i) for i 
+                                      in self.primary_arguments])
+        primary_arguments = textwrap.indent(primary_arguments, 4*' ').lstrip()
+
         q_pattern = '|'.join(self.gen_coordinates_sym)
-        q_equalities = ', \n'.join(['("%s", this-> %s)'%(q, q) for q in self.gen_coordinates_sym])
+        q_equalities = ', \n'.join(['%s'%q for q in self.gen_coordinates_sym])
         q_equalities = re.sub(q_pattern, self_inserter, q_equalities)
         q_equalities = textwrap.indent(q_equalities, 8*' ').lstrip()
         
         qd_pattern = '|'.join(self.gen_velocities_sym)
-        qd_equalities = ', \n'.join(['("%s", this-> %s)'%(q, q) for q in self.gen_velocities_sym])
+        qd_equalities = ', \n'.join(['%s'%q for q in self.gen_velocities_sym])
         qd_equalities = re.sub(qd_pattern, self_inserter, qd_equalities)
         qd_equalities = textwrap.indent(qd_equalities, 8*' ').lstrip()
         
         text = text.format(n = self.mbs.n,
+                           primary_arguments = primary_arguments,
                            q_equalities = q_equalities,
                            qd_equalities = qd_equalities)
         text = textwrap.indent(text, indent)

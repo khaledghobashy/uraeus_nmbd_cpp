@@ -1,41 +1,40 @@
 # pragma once
 
-#include <iomanip>
+// Standard Library Includes.
+#include <map>
+#include <vector>
+#include <variant>
 #include <fstream>
 #include <cstdlib>
 #include <iostream>
 #include <functional>
-#include <vector>
-#include <variant>
-#include <map>
-#include <any>
 
+// 3rd Party Includes.
 #include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
 
 #include <eigen/Eigen/Eigen>
 #include <eigen/Eigen/Dense>
 
-#include <uraeus/geometries.hpp>
-#include <uraeus/spatial_algebra.hpp>
+// Local Libraries Includes.
+#include <uraeus/numerics/geometries.hpp>
+#include <uraeus/numerics/spatial_algebra.hpp>
 
 
 using namespace rapidjson;
 
-typedef std::variant<Eigen::MatrixXd, 
+typedef std::variant<double,
+                    geometry,
                     Eigen::Vector3d, 
                     Eigen::Vector4d, 
-                    Eigen::Matrix<double, 3, 3>,
-                    std::function<double(double)>,
-                    double,
-                    geometry> variants;
+                    Eigen::Matrix3d,
+                    std::function<double(double)> > variants;
 
 typedef std::map<std::string, variants> container;
-
 
 
 class ConfigurationAssembler
@@ -45,25 +44,41 @@ public:
     container config_map;
 
 public:
-    ConfigurationAssembler(std::string);
+    ConfigurationAssembler();
+    ConfigurationAssembler(const std::string& fileName);
+    void constructFromJSON(const std::string& fileName);
+    
+    void get(const std::string& name, double& value);
+    void get(const std::string& name, geometry& value);
+    void get(const std::string& name, Eigen::Vector3d& value);
+    void get(const std::string& name, Eigen::Vector4d& value);
+    void get(const std::string& name, Eigen::Matrix3d& value);
+    void get(const std::string& name, std::function<double(double)>& value);
 
-    void get(std::string name, Eigen::Vector3d& value);
-    void get(std::string name, Eigen::Vector4d& value);
-    void get(std::string name, Eigen::Matrix<double, 3, 3>& value);
-    void get(std::string name, Eigen::MatrixXd& value);
-
-    void get(std::string name, double& value);
-    void get(std::string name, std::function<double(double)>& value);
-
-    void get(std::string name, geometry& value);
-
-
+    void constructObject(const std::string& constructor_, 
+                        rapidjson::Value::ConstMemberIterator object);
 
 private:
-    rapidjson::Document readFile(std::string fileName);
+    rapidjson::Document readFile(const std::string& fileName);
+    void constructConfiguration(rapidjson::Document& document);
     void constructInputs(const rapidjson::Value& inputsObject);
     void constructEvaluations(const rapidjson::Value& evalObject);
     void constructOutputs(const rapidjson::Value& outObject);
 
 
+public:
+
+    void Cylinder_Geometry(rapidjson::Value::ConstMemberIterator object);
+    void Sphere_Geometry(rapidjson::Value::ConstMemberIterator object);
+    void Triangular_Prism(rapidjson::Value::ConstMemberIterator object);
+    void Composite_Geometry(rapidjson::Value::ConstMemberIterator object);
+    void Array(rapidjson::Value::ConstMemberIterator object);
+    void Mirrored(rapidjson::Value::ConstMemberIterator object);
+    void Oriented(rapidjson::Value::ConstMemberIterator object);
+    void Centered(rapidjson::Value::ConstMemberIterator object);
+    void getattribute(rapidjson::Value::ConstMemberIterator object);
+    
+
 };
+
+
