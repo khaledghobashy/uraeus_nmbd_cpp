@@ -1,0 +1,19 @@
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
+
+add_library(dwb_lib double_wishbone_direct_acting.cpp double_wishbone_direct_acting.hpp)
+
+target_include_directories(dwb_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
+target_link_libraries(dwb_lib PRIVATE configuration)
+target_link_libraries(dwb_lib PRIVATE spatial_algebra)
+target_link_libraries(dwb_lib PRIVATE euler_parameters)
+target_link_libraries(dwb_lib PRIVATE helpers)
+
+add_executable(dwb main.cpp)
+
+target_link_libraries(dwb PRIVATE dwb_lib)
+target_link_libraries(dwb PRIVATE configuration)
+target_link_libraries(dwb PRIVATE spatial_algebra)
+target_link_libraries(dwb PRIVATE euler_parameters)
+target_link_libraries(dwb PRIVATE helpers)
