@@ -321,7 +321,7 @@ void ConfigurationAssembler::Composite_Geometry(rapidjson::Value::ConstMemberIte
     //std::cout << "Composite_Geometry" << "\n";
 
     std::vector<geometry> geometries;
-    for (int j=0; j < value.Size(); j++)
+    for (unsigned int j=0; j < value.Size(); j++)
     {
         std::string name = value[j].GetString();
         geometry g;
@@ -352,8 +352,8 @@ void ConfigurationAssembler::Mirrored(rapidjson::Value::ConstMemberIterator item
     std::string elementName = item->name.GetString();
     std::string arg = value[0].GetString();
 
-    if (arg.rfind("P"   , 0) == 0 | arg.rfind("Pd"  , 0) == 0 | 
-        arg.rfind("Pdd" , 0) == 0 | arg.rfind("Jbar", 0) == 0 )
+    if ((arg.rfind("P"   , 0) == 0) | (arg.rfind("Pd"  , 0) == 0) | 
+        (arg.rfind("Pdd" , 0) == 0) | (arg.rfind("Jbar", 0)) == 0 )
     {
         //std::cout << arg << std::endl;
         config_map[elementName] = config_map[arg];
@@ -380,7 +380,7 @@ void ConfigurationAssembler::Centered(rapidjson::Value::ConstMemberIterator item
     //printf("Type of member %s is %s\n", elementName, elementType);
 
     std::vector<Eigen::Vector3d> args_v;
-    for (int j=0; j < value.Size(); j++)
+    for (unsigned int j=0; j < value.Size(); j++)
     {
         std::string name = value[j].GetString();
         Eigen::Vector3d v;
@@ -404,7 +404,7 @@ void ConfigurationAssembler::Oriented(rapidjson::Value::ConstMemberIterator item
     //printf("Type of member %s is %s\n", elementName, elementType);
 
     std::vector<Eigen::Vector3d> args_v;
-    for (int j=0; j < value.Size(); j++)
+    for (unsigned int j=0; j < value.Size(); j++)
     {
         std::string name = value[j].GetString();
         Eigen::Vector3d v;
