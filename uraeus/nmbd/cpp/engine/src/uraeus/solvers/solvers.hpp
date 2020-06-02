@@ -8,6 +8,7 @@
 
 // Local Libraries Includes.
 #include "helpers.hpp"
+#include "utilities.hpp"
 
 
 // Declaring and Implementing the Solver class as a template class.
@@ -32,16 +33,13 @@ public:
 
     Eigen::VectorXd q;
 
-private:
-    std::map<int, std::vector<Eigen::VectorXd>*> results;
-    std::map<int, std::string> results_names;
-
 public:
 
     Solver(){};
+
     Solver(T& model)
     {
-        this-> model_ptr = &model;
+        model_ptr = &model;
         Jacobian.resize(model.nc, model.n);
 
         for (size_t i = 0; i < model.jac_rows.size(); i++)
@@ -50,9 +48,9 @@ public:
             jac_cols.push_back(int(model.jac_cols(i)));        
         }
 
-        this->results_names[0] = "Positions";
-        this->results_names[1] = "Velocities";
-        this->results_names[2] = "Accelerations";
+        results_names[0] = "Positions";
+        results_names[1] = "Velocities";
+        results_names[2] = "Accelerations";
     };
 
     void set_time(double& t);
@@ -67,11 +65,15 @@ public:
     void set_gen_velocities(Eigen::VectorXd& qd);
     void set_gen_accelerations(Eigen::VectorXd& qdd);
 
-public:
-    void NewtonRaphson(Eigen::VectorXd &guess);
+    void solve_constraints(Eigen::VectorXd& guess);
     void Solve();
 
     void ExportResultsCSV(std::string location, std::string name, int id);
+
+private:
+    std::map<int, std::vector<Eigen::VectorXd>*> results;
+    std::map<int, std::string> results_names;
+
 };
 
 
@@ -83,7 +85,7 @@ public:
 template<class T>
 void Solver<T>::set_time(double& t)
 {
-    this-> model_ptr-> t = t;
+    model_ptr-> t = t;
 };
 
 template<class T>
@@ -91,76 +93,69 @@ void Solver<T>::set_time_array(const double& duration, const double& spacing)
 {
     if (duration > spacing)
     {   
-        double steps = duration/spacing;
-        this-> time_array = Eigen::VectorXd::LinSpaced(steps, 0, duration);
-        this-> step_size = spacing;
+        auto steps = duration/spacing;
+        time_array = Eigen::VectorXd::LinSpaced(steps, 0, duration);
+        step_size = spacing;
     }
     else if (duration < spacing)
     {
-        this-> time_array = Eigen::VectorXd::LinSpaced(spacing, 0, duration);
-        this-> step_size = duration/spacing;
+        time_array = Eigen::VectorXd::LinSpaced(spacing, 0, duration);
+        step_size = duration/spacing;
     }
 };
 
 template<class T>
 void Solver<T>::set_gen_coordinates(Eigen::VectorXd &q)
 {   
-    auto& model = *this-> model_ptr;
-    model.set_gen_coordinates(q);
+    model_ptr->set_gen_coordinates(q);
 };
 
 template<class T>
 void Solver<T>::set_gen_velocities(Eigen::VectorXd &qd)
 {   
-    auto& model = *this-> model_ptr;
-    model.set_gen_velocities(qd);
+    model_ptr->set_gen_velocities(qd);
 };
 
 template<class T>
 void Solver<T>::set_gen_accelerations(Eigen::VectorXd &qdd)
 {   
-    auto& model = *this-> model_ptr;
-    model.set_gen_accelerations(qdd);
+    model_ptr->set_gen_accelerations(qdd);
 };
 
 
 template<class T>
 Eigen::VectorXd Solver<T>::eval_pos_eq()
 {   
-    auto& model = *this-> model_ptr;
-    model.eval_pos_eq();
-    return model.pos_eq;
+    model_ptr->eval_pos_eq();
+    return model_ptr->pos_eq;
 };
 
 template<class T>
 Eigen::VectorXd Solver<T>::eval_vel_eq()
 {   
-    auto& model = *this-> model_ptr;
-    model.eval_vel_eq();
-    return model.vel_eq;
+    model_ptr->eval_vel_eq();
+    return model_ptr->vel_eq;
 };
 
 template<class T>
 Eigen::VectorXd Solver<T>::eval_acc_eq()
 {   
-    auto& model = *this-> model_ptr;
-    model.eval_acc_eq();
-    return model.acc_eq;
+    model_ptr->eval_acc_eq();
+    return model_ptr->acc_eq;
 };
 
 
 template<class T>
 SparseBlock Solver<T>::eval_jac_eq()
 {   
-    auto& model = *this-> model_ptr;
-    model.eval_jac_eq();
-    SparseAssembler(this-> Jacobian, this-> jac_rows, this-> jac_cols, model.jac_eq);
-    return this-> Jacobian;
+    model_ptr->eval_jac_eq();
+    SparseAssembler(Jacobian, jac_rows, jac_cols, model_ptr->jac_eq);
+    return Jacobian;
 };
 
 
 template<class T>
-void Solver<T>::NewtonRaphson(Eigen::VectorXd &guess)
+void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
 {
     auto& model = *this-> model_ptr;
     
@@ -170,11 +165,11 @@ void Solver<T>::NewtonRaphson(Eigen::VectorXd &guess)
 
     //std::cout << "Setting Guess" << "\n";
     //std::cout << guess << "\n";
-    this-> set_gen_coordinates(guess);
+    set_gen_coordinates(guess);
     //std::cout << "Evaluating Pos_Eq " << "\n";
-    auto b = this-> eval_pos_eq();
+    auto b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
-    auto A = this-> eval_jac_eq();
+    auto A = eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
     SparseSolver.compute(A);
 
@@ -187,13 +182,13 @@ void Solver<T>::NewtonRaphson(Eigen::VectorXd &guess)
     {
         //std::cout << "Error e = " << error.norm() << "\n";
         guess += error;
-        this-> set_gen_coordinates(guess);
-        b = this-> eval_pos_eq();
+        set_gen_coordinates(guess);
+        b = eval_pos_eq();
         error = SparseSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
         {
-            A = this-> eval_jac_eq();
+            A = eval_jac_eq();
             SparseSolver.compute(A);
             error = SparseSolver.solve(-b);
         };
@@ -208,6 +203,7 @@ void Solver<T>::NewtonRaphson(Eigen::VectorXd &guess)
     };
     
     this-> q = guess;
+    SparseSolver.compute(eval_jac_eq());
 };
 
 
@@ -216,78 +212,66 @@ void Solver<T>::Solve()
 {
     std::cout << "Starting Solver ..." << "\n";
     Eigen::SparseLU<SparseBlock> SparseSolver;
-    auto& time_array = this-> time_array;
-    auto& dt = this-> step_size;
+    
+    auto& dt = step_size;
     double t = 0;
     auto samples = time_array.size();
-    std::cout << "Samples Size = " << samples << std::endl;
-
+    
     //std::cout << "Setting Initial Position History" << "\n";
-    this-> pos_history.emplace_back(this-> model_ptr-> q0);
+    pos_history.emplace_back(model_ptr-> q0);
 
     Eigen::VectorXd v0, vi, a0, ai, guess;
 
-    this-> pos_history.reserve(samples);
-    this-> vel_history.reserve(samples);
-    this-> acc_history.reserve(samples);
+    pos_history.reserve(samples);
+    vel_history.reserve(samples);
+    acc_history.reserve(samples);
 
     //std::cout << "Computing Jacobian" << "\n";
-    auto A = this-> eval_jac_eq();
+    auto A = eval_jac_eq();
     SparseSolver.compute(A);
 
     //std::cout << "Solving for Velocity" << "\n";
-    v0 = SparseSolver.solve(-this-> eval_vel_eq());
+    v0 = SparseSolver.solve(-eval_vel_eq());
     //std::cout << "Setting Generalized Velocities" << "\n";
-    this-> set_gen_velocities(v0);
+    set_gen_velocities(v0);
     //std::cout << "Storing Generalized Velocities" << "\n";
-    this-> vel_history.emplace_back(v0);
+    vel_history.emplace_back(v0);
     
     //std::cout << "Solving for Accelerations" << "\n";
-    a0 = SparseSolver.solve(-this-> eval_acc_eq());
-    this-> acc_history.emplace_back(a0);
+    a0 = SparseSolver.solve(-eval_acc_eq());
+    acc_history.emplace_back(a0);
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end;
 
     //std::cout << "\nRunning System Kinematic Analysis: " << "\n";
-    const int barWidth = 50;
     for (size_t i = 1; i < samples; i++)
     {
-        std::cout << "[";
-        int pos = barWidth * i/samples ;
-        for (int p = 0; p < barWidth; ++p) 
-        {
-            if (p < pos) std::cout << "=" ;
-            else if (p == pos) std::cout << ">" ;
-            else std::cout << " " ;
-        }
-        std::cout << "] " << i << " \r" ;
-        std::cout.flush() ;
-
-        //std::cout << "Simulation Steps : " << i << " \r" ;
-        //std::cout.flush() ;
+        print_progress(begin, samples, i);
 
         t = time_array(i) ;
-        this-> set_time(t) ;
+        set_time(t) ;
 
-        guess = this-> pos_history[i-1]
-              + this-> vel_history[i-1] * dt
-              + 0.5 * this-> acc_history[i-1] * pow(dt, 2);
+        guess = pos_history[i-1]
+              + vel_history[i-1] * dt
+              + 0.5 * acc_history[i-1] * pow(dt, 2);
 
-        this-> NewtonRaphson(guess);
-        this-> pos_history.emplace_back(this-> q);
+        solve_constraints(guess);
+        set_gen_coordinates(q);
 
-        A = this-> eval_jac_eq();
-        SparseSolver.compute(A);
+        vi = SparseSolver.solve(-eval_vel_eq());
+        set_gen_velocities(vi);
 
-        vi = SparseSolver.solve(-this-> eval_vel_eq());
-        this-> set_gen_velocities(vi);
-        this-> vel_history.emplace_back(vi);
-
-        ai = SparseSolver.solve(-this-> eval_acc_eq());
-        this-> acc_history.emplace_back(ai);
+        ai = SparseSolver.solve(-eval_acc_eq());
+        
+        pos_history.emplace_back(q);
+        vel_history.emplace_back(vi);
+        acc_history.emplace_back(ai);
     };
 
-    this->results[0] = &this->pos_history;
-    this->results[1] = &this->vel_history;
-    this->results[2] = &this->acc_history;
+    results[0] = &pos_history;
+    results[1] = &vel_history;
+    results[2] = &acc_history;
 
     std::cout << "\n";
     std::cout << "Finished Solver ..." << "\n";
@@ -301,12 +285,9 @@ template<class T>
 void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
 {
     // declaring and initializing the needed variables
-    auto& data = *(this-> results[id]);
-    auto& model = *this-> model_ptr;
+    auto& data = *(results[id]);
+    auto& model = *model_ptr;
     std::ofstream results_file;
-
-    std::cout << "Data Size = " << data.size() << std::endl;
-    std::cout << "Results Size = " << (*this-> results.at(0)).size() << std::endl;
 
     std::map<int, std::string> ordered_indicies;
     for (auto x : model.indicies_map)
@@ -339,7 +320,7 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     {
         results_file << std::to_string(i) + ", ";
         results_file << x.transpose().format(CSVFormat) ;
-        results_file << std::to_string(this-> time_array(i)) + "\n";
+        results_file << std::to_string(time_array(i)) + "\n";
         i += 1;
     };
 
