@@ -16,4 +16,7 @@
 /tests
 /uraeus/nmbd/cpp/engine/sandbox
 
-
+build
+dist
+# Egg metadata
+*.egg-info
