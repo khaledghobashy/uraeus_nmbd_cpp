@@ -1,6 +1,3 @@
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
 add_library(dwb_lib double_wishbone_direct_acting.cpp double_wishbone_direct_acting.hpp)
 
 target_include_directories(dwb_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
