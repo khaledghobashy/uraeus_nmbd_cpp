@@ -14,5 +14,6 @@
 /examples/**/results
 /examples/**/config_inputs
 /tests
+/uraeus/nmbd/cpp/engine/sandbox
 
 
