@@ -1,6 +1,3 @@
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
 # Numerical Libraries
 # ===================
 add_library(euler_parameters 
