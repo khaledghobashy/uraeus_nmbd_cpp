@@ -5,10 +5,10 @@
 void Configuration::constructFromJSON(std::string fileName)
 {
     std::cout << "Constructing Configuration Inputs" << std::endl;
-    this->ConfigInputs.constructFromJSON(fileName);
+    ConfigInputs.constructFromJSON(fileName);
 
     std::cout << "Populating Configuration Arguments!" << std::endl;
-    this->populateArguments();
+    populateArguments();
 };
 
 
@@ -86,8 +86,8 @@ Topology::Topology(std::string prefix = "")
 {
     this-> prefix = prefix;
 
-    this-> q0.resize(this-> n);
-
+    q0.resize(n);
+    
     this-> pos_eq.resize(this-> nc);
     this-> vel_eq.resize(this-> nc);
     this-> acc_eq.resize(this-> nc);
@@ -179,9 +179,9 @@ void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_
 
 void Topology::set_initial_states()
 {
-    this-> set_gen_coordinates(this-> config.q);
-    this-> set_gen_velocities(this-> config.qd);
-    this-> q0 = this-> config.q;
+    set_gen_coordinates(this-> config.q);
+    set_gen_velocities(this-> config.qd);
+    q0 << config.q;
 };
 
 
@@ -193,47 +193,24 @@ void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
     this-> rbs_l1 = indicies_map[p+"rbs_l1"];
     this-> rbs_l2 = indicies_map[p+"rbs_l2"];
     this-> rbs_l3 = indicies_map[p+"rbs_l3"];
-
-    
 };
 
 
 
 
-void Topology::set_gen_coordinates(Eigen::VectorXd &q)
+void Topology::set_gen_coordinates(Eigen::Ref<Eigen::VectorXd> q)
 {
-    this-> R_ground << q.block(0,0, 3,1) ;
-    this-> P_ground << q.block(3,0, 4,1) ;
-    this-> R_rbs_l1 << q.block(7,0, 3,1) ;
-    this-> P_rbs_l1 << q.block(10,0, 4,1) ;
-    this-> R_rbs_l2 << q.block(14,0, 3,1) ;
-    this-> P_rbs_l2 << q.block(17,0, 4,1) ;
-    this-> R_rbs_l3 << q.block(21,0, 3,1) ;
-    this-> P_rbs_l3 << q.block(24,0, 4,1) ;
+    this->q = q;
 };
 
-void Topology::set_gen_velocities(Eigen::VectorXd &qd)
+void Topology::set_gen_velocities(Eigen::Ref<Eigen::VectorXd> qd)
 {
-    this-> Rd_ground << qd.block(0,0, 3,1) ;
-    this-> Pd_ground << qd.block(3,0, 4,1) ;
-    this-> Rd_rbs_l1 << qd.block(7,0, 3,1) ;
-    this-> Pd_rbs_l1 << qd.block(10,0, 4,1) ;
-    this-> Rd_rbs_l2 << qd.block(14,0, 3,1) ;
-    this-> Pd_rbs_l2 << qd.block(17,0, 4,1) ;
-    this-> Rd_rbs_l3 << qd.block(21,0, 3,1) ;
-    this-> Pd_rbs_l3 << qd.block(24,0, 4,1) ;
-};
+    this->qd = qd;
+ };
 
-void Topology::set_gen_accelerations(Eigen::VectorXd &qdd)
+void Topology::set_gen_accelerations(Eigen::Ref<Eigen::VectorXd> qdd)
 {
-    this-> Rdd_ground << qdd.block(0,0, 3,1) ;
-    this-> Pdd_ground << qdd.block(3,0, 4,1) ;
-    this-> Rdd_rbs_l1 << qdd.block(7,0, 3,1) ;
-    this-> Pdd_rbs_l1 << qdd.block(10,0, 4,1) ;
-    this-> Rdd_rbs_l2 << qdd.block(14,0, 3,1) ;
-    this-> Pdd_rbs_l2 << qdd.block(17,0, 4,1) ;
-    this-> Rdd_rbs_l3 << qdd.block(21,0, 3,1) ;
-    this-> Pdd_rbs_l3 << qdd.block(24,0, 4,1) ;
+    this->qdd = qdd;
 };
 
 
@@ -276,26 +253,26 @@ void Topology::eval_pos_eq()
     auto& config = this-> config;
     auto& t = this-> t;
 
-    Eigen::Vector3d x0 = this-> R_ground ;
-    Eigen::Vector3d x1 = this-> R_rbs_l1 ;
-    Eigen::Vector4d x2 = this-> P_ground ;
-    Eigen::Matrix<double, 3, 3> x3 = A(x2) ;
-    Eigen::Vector4d x4 = this-> P_rbs_l1 ;
-    Eigen::Matrix<double, 3, 3> x5 = A(x4) ;
-    Eigen::Matrix<double, 3, 3> x6 = x3.transpose() ;
-    Eigen::Vector3d x7 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
-    Eigen::Vector3d x8 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
-    Eigen::Vector3d x9 = this-> R_rbs_l2 ;
-    Eigen::Vector4d x10 = this-> P_rbs_l2 ;
-    Eigen::Matrix<double, 3, 3> x11 = A(x10) ;
-    Eigen::Vector3d x12 = this-> R_rbs_l3 ;
-    Eigen::Vector4d x13 = this-> P_rbs_l3 ;
-    Eigen::Matrix<double, 3, 3> x14 = A(x13) ;
-    Eigen::Matrix<double, 3, 3> x15 = x14.transpose() ;
-    Eigen::Vector3d x16 = this-> Mbar_ground_jcs_d.col(2) ;
-    Eigen::Matrix<double, 1, 1> x17 = -1 * Eigen::MatrixXd::Identity(1, 1) ;
+    auto& x0 = this-> R_ground ;
+    auto& x1 = this-> R_rbs_l1 ;
+    auto& x2 = this-> P_ground ;
+    auto&& x3 = A(x2) ;
+    auto& x4 = this-> P_rbs_l1 ;
+    auto&& x5 = A(x4) ;
+    auto&& x6 = x3.transpose() ;
+    auto&& x7 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
+    auto&& x8 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
+    auto& x9 = this-> R_rbs_l2 ;
+    auto& x10 = this-> P_rbs_l2 ;
+    auto&& x11 = A(x10) ;
+    auto& x12 = this-> R_rbs_l3 ;
+    auto& x13 = this-> P_rbs_l3 ;
+    auto&& x14 = A(x13) ;
+    auto&& x15 = x14.transpose() ;
+    auto&& x16 = this-> Mbar_ground_jcs_d.col(2) ;
+    auto& x17 = -1 * Eigen::MatrixXd::Identity(1, 1) ;
 
-    this-> pos_eq << 
+    pos_eq << 
         (x0 + -1 * x1 + x3 * this-> ubar_ground_jcs_a + -1 * x5 * this-> ubar_rbs_l1_jcs_a),
         this-> Mbar_ground_jcs_a.col(0).transpose() * x6 * x5 * x7,
         this-> Mbar_ground_jcs_a.col(1).transpose() * x6 * x5 * x7,
@@ -344,37 +321,37 @@ void Topology::eval_acc_eq()
     auto& config = this-> config;
     auto& t = this-> t;
 
-    Eigen::Vector4d a0 = this-> Pd_ground ;
-    Eigen::Vector4d a1 = this-> Pd_rbs_l1 ;
-    Eigen::Vector3d a2 = this-> Mbar_ground_jcs_a.col(0) ;
-    Eigen::Vector4d a3 = this-> P_ground ;
-    Eigen::Matrix<double, 3, 3> a4 = A(a3).transpose() ;
-    Eigen::Vector3d a5 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
-    Eigen::Matrix<double, 3, 4> a6 = B(a1, a5) ;
-    Eigen::Matrix<double, 1, 3> a7 = a5.transpose() ;
-    Eigen::Vector4d a8 = this-> P_rbs_l1 ;
-    Eigen::Matrix<double, 3, 3> a9 = A(a8).transpose() ;
-    Eigen::Matrix<double, 1, 4> a10 = a0.transpose() ;
-    Eigen::Matrix<double, 3, 4> a11 = B(a8, a5) ;
-    Eigen::Vector3d a12 = this-> Mbar_ground_jcs_a.col(1) ;
-    Eigen::Vector3d a13 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
-    Eigen::Vector3d a14 = this-> Mbar_ground_jcs_a.col(1) ;
-    Eigen::Vector3d a15 = this-> Mbar_ground_jcs_a.col(0) ;
-    Eigen::Vector4d a16 = this-> Pd_rbs_l2 ;
-    Eigen::Vector4d a17 = this-> Pd_rbs_l3 ;
-    Eigen::Vector3d a18 = this-> Mbar_rbs_l2_jcs_c.col(0) ;
-    Eigen::Vector4d a19 = this-> P_rbs_l2 ;
-    Eigen::Vector3d a20 = this-> Mbar_rbs_l3_jcs_c.col(0) ;
-    Eigen::Vector4d a21 = this-> P_rbs_l3 ;
-    Eigen::Matrix<double, 3, 3> a22 = A(a21).transpose() ;
-    Eigen::Matrix<double, 1, 4> a23 = a16.transpose() ;
-    Eigen::Vector3d a24 = this-> Mbar_ground_jcs_d.col(2) ;
-    Eigen::Matrix<double, 1, 3> a25 = a24.transpose() ;
-    Eigen::Vector3d a26 = this-> Mbar_rbs_l3_jcs_d.col(0) ;
-    Eigen::Matrix<double, 3, 4> a27 = B(a0, a24) ;
-    Eigen::Matrix<double, 1, 4> a28 = a17.transpose() ;
-    Eigen::Matrix<double, 3, 4> a29 = B(a3, a24) ;
-    Eigen::Vector3d a30 = this-> Mbar_rbs_l3_jcs_d.col(1) ;
+    auto& a0 = this-> Pd_ground ;
+    auto& a1 = this-> Pd_rbs_l1 ;
+    auto&& a2 = this-> Mbar_ground_jcs_a.col(0) ;
+    auto& a3 = this-> P_ground ;
+    auto&& a4 = A(a3).transpose() ;
+    auto&& a5 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
+    auto&& a6 = B(a1, a5) ;
+    auto&& a7 = a5.transpose() ;
+    auto& a8 = this-> P_rbs_l1 ;
+    auto&& a9 = A(a8).transpose() ;
+    auto& a10 = a0.transpose() ;
+    auto&& a11 = B(a8, a5) ;
+    auto&& a12 = this-> Mbar_ground_jcs_a.col(1) ;
+    auto&& a13 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
+    auto&& a14 = this-> Mbar_ground_jcs_a.col(1) ;
+    auto&& a15 = this-> Mbar_ground_jcs_a.col(0) ;
+    auto& a16 = this-> Pd_rbs_l2 ;
+    auto& a17 = this-> Pd_rbs_l3 ;
+    auto&& a18 = this-> Mbar_rbs_l2_jcs_c.col(0) ;
+    auto& a19 = this-> P_rbs_l2 ;
+    auto&& a20 = this-> Mbar_rbs_l3_jcs_c.col(0) ;
+    auto& a21 = this-> P_rbs_l3 ;
+    auto&& a22 = A(a21).transpose() ;
+    auto&& a23 = a16.transpose() ;
+    auto&& a24 = this-> Mbar_ground_jcs_d.col(2) ;
+    auto&& a25 = a24.transpose() ;
+    auto&& a26 = this-> Mbar_rbs_l3_jcs_d.col(0) ;
+    auto&& a27 = B(a0, a24) ;
+    auto&& a28 = a17.transpose() ;
+    auto&& a29 = B(a3, a24) ;
+    auto&& a30 = this-> Mbar_rbs_l3_jcs_d.col(1) ;
 
     this-> acc_eq << 
         (B(a0, this-> ubar_ground_jcs_a) * a0 + -1 * B(a1, this-> ubar_rbs_l1_jcs_a) * a1),
@@ -399,31 +376,31 @@ void Topology::eval_jac_eq()
     auto& config = this-> config;
     auto& t = this-> t;
 
-    Eigen::Matrix<double, 3, 3> j0 = Eigen::MatrixXd::Identity(3, 3) ;
-    Eigen::Vector4d j1 = this-> P_ground ;
-    Eigen::Matrix<double, 1, 3> j2 = Eigen::MatrixXd::Zero(1, 3) ;
-    Eigen::Vector3d j3 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
-    Eigen::Matrix<double, 1, 3> j4 = j3.transpose() ;
-    Eigen::Vector4d j5 = this-> P_rbs_l1 ;
-    Eigen::Matrix<double, 3, 3> j6 = A(j5).transpose() ;
-    Eigen::Vector3d j7 = this-> Mbar_ground_jcs_a.col(0) ;
-    Eigen::Vector3d j8 = this-> Mbar_ground_jcs_a.col(1) ;
-    Eigen::Matrix<double, 3, 3> j9 = -1 * j0 ;
-    Eigen::Matrix<double, 3, 3> j10 = A(j1).transpose() ;
-    Eigen::Matrix<double, 3, 4> j11 = B(j5, j3) ;
-    Eigen::Vector3d j12 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
-    Eigen::Vector3d j13 = this-> Mbar_ground_jcs_a.col(1) ;
-    Eigen::Vector3d j14 = this-> Mbar_ground_jcs_a.col(0) ;
-    Eigen::Vector4d j15 = this-> P_rbs_l2 ;
-    Eigen::Vector3d j16 = this-> Mbar_rbs_l3_jcs_c.col(0) ;
-    Eigen::Vector4d j17 = this-> P_rbs_l3 ;
-    Eigen::Matrix<double, 3, 3> j18 = A(j17).transpose() ;
-    Eigen::Vector3d j19 = this-> Mbar_rbs_l2_jcs_c.col(0) ;
-    Eigen::Vector3d j20 = this-> Mbar_ground_jcs_d.col(2) ;
-    Eigen::Matrix<double, 1, 3> j21 = j20.transpose() ;
-    Eigen::Vector3d j22 = this-> Mbar_rbs_l3_jcs_d.col(0) ;
-    Eigen::Vector3d j23 = this-> Mbar_rbs_l3_jcs_d.col(1) ;
-    Eigen::Matrix<double, 3, 4> j24 = B(j1, j20) ;
+    auto& j0 = Eigen::MatrixXd::Identity(3, 3) ;
+    auto& j1 = this-> P_ground ;
+    auto& j2 = Eigen::MatrixXd::Zero(1, 3) ;
+    auto&& j3 = this-> Mbar_rbs_l1_jcs_a.col(2) ;
+    auto&& j4 = j3.transpose() ;
+    auto& j5 = this-> P_rbs_l1 ;
+    auto&& j6 = A(j5).transpose() ;
+    auto&& j7 = this-> Mbar_ground_jcs_a.col(0) ;
+    auto&& j8 = this-> Mbar_ground_jcs_a.col(1) ;
+    auto& j9 = -1 * j0 ;
+    auto&& j10 = A(j1).transpose() ;
+    auto&& j11 = B(j5, j3) ;
+    auto&& j12 = this-> Mbar_rbs_l1_jcs_a.col(0) ;
+    auto&& j13 = this-> Mbar_ground_jcs_a.col(1) ;
+    auto&& j14 = this-> Mbar_ground_jcs_a.col(0) ;
+    auto& j15 = this-> P_rbs_l2 ;
+    auto&& j16 = this-> Mbar_rbs_l3_jcs_c.col(0) ;
+    auto& j17 = this-> P_rbs_l3 ;
+    auto&& j18 = A(j17).transpose() ;
+    auto&& j19 = this-> Mbar_rbs_l2_jcs_c.col(0) ;
+    auto&& j20 = this-> Mbar_ground_jcs_d.col(2) ;
+    auto&& j21 = j20.transpose() ;
+    auto&& j22 = this-> Mbar_rbs_l3_jcs_d.col(0) ;
+    auto&& j23 = this-> Mbar_rbs_l3_jcs_d.col(1) ;
+    auto&& j24 = B(j1, j20) ;
 
     this-> jac_eq = 
         {j0,

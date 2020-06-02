@@ -132,9 +132,9 @@ public:
     void eval_jac_eq();
 
     // Topology States Setters.
-    void set_gen_coordinates(Eigen::VectorXd& q);
-    void set_gen_velocities(Eigen::VectorXd& qd);
-    void set_gen_accelerations(Eigen::VectorXd& qdd);
+    void set_gen_coordinates(Eigen::Ref<Eigen::VectorXd> q);
+    void set_gen_velocities(Eigen::Ref<Eigen::VectorXd> qd);
+    void set_gen_accelerations(Eigen::Ref<Eigen::VectorXd> qdd);
 
 private:
     void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
@@ -146,36 +146,40 @@ public:
     int rbs_l2 ;
     int rbs_l3 ;
 
+    Eigen::Matrix<double, 28, 1> q;
+    Eigen::Matrix<double, 28, 1> qd;
+    Eigen::Matrix<double, 28, 1> qdd;
+
 // Topology Generalized Coordinates (R and P vectors).
 public:
-    Eigen::Vector3d R_rbs_l1 ;
-    Eigen::Vector4d P_rbs_l1 ;
-    Eigen::Vector3d R_rbs_l2 ;
-    Eigen::Vector4d P_rbs_l2 ;
-    Eigen::Vector3d R_rbs_l3 ;
-    Eigen::Vector4d P_rbs_l3 ;
+    const Eigen::Ref<Eigen::Vector3d> R_rbs_l1 = q.segment(7,3);
+    const Eigen::Ref<Eigen::Vector4d> P_rbs_l1 = q.segment(10,4);
+    const Eigen::Ref<Eigen::Vector3d> R_rbs_l2 = q.segment(14,3);
+    const Eigen::Ref<Eigen::Vector4d> P_rbs_l2 = q.segment(17,4);
+    const Eigen::Ref<Eigen::Vector3d> R_rbs_l3 = q.segment(21,3);
+    const Eigen::Ref<Eigen::Vector4d> P_rbs_l3 = q.segment(24,4);
 
 // Topology Generalized Velocities (dR/dt and dP/dt vectors).
 public:
-    Eigen::Vector3d Rd_ground ;
-    Eigen::Vector4d Pd_ground ;
-    Eigen::Vector3d Rd_rbs_l1 ;
-    Eigen::Vector4d Pd_rbs_l1 ;
-    Eigen::Vector3d Rd_rbs_l2 ;
-    Eigen::Vector4d Pd_rbs_l2 ;
-    Eigen::Vector3d Rd_rbs_l3 ;
-    Eigen::Vector4d Pd_rbs_l3 ;
+    const Eigen::Vector3d Rd_ground {0, 0, 0};
+    const Eigen::Vector4d Pd_ground {0, 0, 0, 0};
+    const Eigen::Ref<Eigen::Vector3d> Rd_rbs_l1 = qd.segment(7,3);
+    const Eigen::Ref<Eigen::Vector4d> Pd_rbs_l1 = qd.segment(10,4);
+    const Eigen::Ref<Eigen::Vector3d> Rd_rbs_l2 = qd.segment(14,3);
+    const Eigen::Ref<Eigen::Vector4d> Pd_rbs_l2 = qd.segment(17,4);
+    const Eigen::Ref<Eigen::Vector3d> Rd_rbs_l3 = qd.segment(21,3);
+    const Eigen::Ref<Eigen::Vector4d> Pd_rbs_l3 = qd.segment(24,4);
 
 // Topology Generalized Accelerations (dR2/dt2 and dP2/dt2 vectors).
 public:
-    Eigen::Vector3d Rdd_ground ;
-    Eigen::Vector4d Pdd_ground ;
-    Eigen::Vector3d Rdd_rbs_l1 ;
-    Eigen::Vector4d Pdd_rbs_l1 ;
-    Eigen::Vector3d Rdd_rbs_l2 ;
-    Eigen::Vector4d Pdd_rbs_l2 ;
-    Eigen::Vector3d Rdd_rbs_l3 ;
-    Eigen::Vector4d Pdd_rbs_l3 ;
+    const Eigen::Vector3d Rdd_ground {0, 0, 0};
+    const Eigen::Vector4d Pdd_ground {0, 0, 0, 0};
+    const Eigen::Ref<Eigen::Vector3d> Rdd_rbs_l1 = qdd.segment(7,3);
+    const Eigen::Ref<Eigen::Vector4d> Pdd_rbs_l1 = qdd.segment(10,4);
+    const Eigen::Ref<Eigen::Vector3d> Rdd_rbs_l2 = qdd.segment(14,3);
+    const Eigen::Ref<Eigen::Vector4d> Pdd_rbs_l2 = qdd.segment(17,4);
+    const Eigen::Ref<Eigen::Vector3d> Rdd_rbs_l3 = qdd.segment(21,3);
+    const Eigen::Ref<Eigen::Vector4d> Pdd_rbs_l3 = qdd.segment(24,4);
 
 // Configuration Constants.
 public:    

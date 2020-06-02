@@ -14,5 +14,3 @@ add_subdirectory(src)
 add_subdirectory(sandbox/configuration)
 add_subdirectory(sandbox/fourbar)
 add_subdirectory(sandbox/double_wishbone)
-add_subdirectory(sandbox/double_wishbone/cythonized_2/cpp_src)
-
