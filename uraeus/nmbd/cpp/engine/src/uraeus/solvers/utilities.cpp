@@ -18,3 +18,24 @@ void ExportResultsCSV(const std::string& name, const std::vector<Eigen::VectorXd
     std::cout << "Results Saved as : " << name + ".csv" << "\n";
 };
 
+
+void print_progress(time_point begin, Eigen::Index samples, int i)
+{
+    const int barWidth = 50;
+
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto pos = barWidth * i/samples ;
+    int progress = (double(i)/samples)*100;
+
+    std::cout << "[";
+    for (int p = 0; p < barWidth; ++p) 
+    {
+        if (p < pos) std::cout << "=" ;
+        else if (p == pos) std::cout << ">" ;
+        else std::cout << " " ;
+    }
+    std::cout << "] " << progress << "% | CPU Time(s) = " << duration*1e-3 <<" \r" ;
+    std::cout.flush() ;
+}
+
