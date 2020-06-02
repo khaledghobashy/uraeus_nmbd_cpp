@@ -16,10 +16,15 @@ int main()
 
     Config.UF_mcs_act = [](double t)->double{return 2*(22/7)*t;};
 
+    std::cout << "\nInitializing Model!" << std::endl;
+    model.initialize();
+    std::cout << "\nSetting Gen-Coord!" << std::endl;
+    model.set_gen_coordinates(Config.q);
+
     Solver<Topology> Soln(model);
-    Soln.set_time_array(1, 100);
+    Soln.set_time_array(5, 1000);
     Soln.Solve();
-    Soln.ExportResultsCSV("", 0);
+    Soln.ExportResultsCSV("", "pos", 0);
 
 
     return 0;
