@@ -17,34 +17,19 @@ int main()
 
     Config.set_inital_configuration();
 
-    /* std::cout << Config.R_rbr_hub << std::endl;
-    std::cout << Config.R_rbl_hub << std::endl;
-
-    std::cout << Config.R_rbr_uca << std::endl;
-    std::cout << Config.R_rbl_uca << std::endl;
-
-    std::cout << Config.R_rbr_lca << std::endl;
-    std::cout << Config.R_rbl_lca << std::endl;
-
-    std::cout << Config.R_rbr_upper_strut << std::endl;
-    std::cout << Config.R_rbl_upper_strut << std::endl;
-
-    std::cout << Config.R_rbr_upright << std::endl;
-    std::cout << Config.R_rbl_upright << std::endl;
-
-    std::cout << Config.q << std::endl;
-    std::cout << Config.qd << std::endl; */
-
     Config.UF_mcr_wheel_lock = [](double t)->double{return 0;};
     Config.UF_mcl_wheel_lock = [](double t)->double{return 0;};
 
     Config.UF_mcr_wheel_travel = [](double t)->double{return 546 + 150*std::sin(t);};
     Config.UF_mcl_wheel_travel = [](double t)->double{return 546 - 150*std::sin(t);};
-
+    
+    model.initialize();
+    model.set_gen_coordinates(Config.q);
+    
     Solver<Topology> Soln(model);
-    Soln.set_time_array(2*(22./7), 2*(22./7) * 1e2);
+    Soln.set_time_array(2*(22./7), 5e-3);
     Soln.Solve();
-    Soln.ExportResultsCSV("", 0);
+    Soln.ExportResultsCSV("", "pos", 0);
 
 
     return 0;
