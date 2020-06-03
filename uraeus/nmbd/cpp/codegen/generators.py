@@ -216,7 +216,7 @@ class configuration_codegen(abstract_generator):
 ###############################################################################
 ###############################################################################
 
-class template_codegen(abstract_generator):
+class template_codegen1(abstract_generator):
     
             
     def write_header_class(self):
@@ -847,5 +847,639 @@ class template_codegen(abstract_generator):
 
 ###############################################################################
 ###############################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class template_codegen(abstract_generator):
+    
+            
+    def write_header_class(self):
+        text = '''
+                #pragma once
+
+                // Standard Library Includes.
+                #include <map>
+                #include <vector>
+                
+                // uraeus library includes.
+                #include <uraeus/numerics/euler_parameters.hpp>
+                #include <uraeus/numerics/spatial_algebra.hpp>
+                #include <uraeus/solvers/helpers.hpp>
+
+                #include <uraeus/systems/configuration.hpp>
+
+                
+                typedef std::map<std::string, std::string> Dict_SS;
+                typedef std::map<std::string, int> Dict_SI;
+                
+                // Declaring the Configuration Class and its numerical objects.
+                // ============================================================
+                class Configuration
+                {{
+                
+                public:
+                    ConfigurationAssembler ConfigInputs;
+                    void set_inital_configuration();
+                    void constructFromJSON(std::string fileName);                
+                
+                private:
+                    void populateArguments();
+
+                public:
+                    Eigen::VectorXd q;
+                    Eigen::VectorXd qd;
+
+                    Eigen::Vector3d R_ground {{0, 0, 0}};
+                    Eigen::Vector4d P_ground {{1, 0, 0, 0}};
+                    
+                    Eigen::Vector3d Rd_ground {{0, 0, 0}};
+                    Eigen::Vector4d Pd_ground {{0, 0, 0, 0}};
+
+                    {primary_arguments}
+                    
+                }};
+
+
+                // Declaring the Topology Class and its numerical objects.
+                // =======================================================
+                class Topology
+                {{
+                
+                public:
+                    // Topology constants.
+                    static const int n = {n};
+                    static const int nc = {nc};
+                    static const int nrows = {nve};
+                    static const int ncols = 2*{nodes};
+                    
+                    // Topology variables
+                    std::string prefix;
+                    double t = 0;
+                    
+                    Eigen::VectorXd q0;
+
+                    Eigen::Matrix<double, n, 1> q;
+                    Eigen::Matrix<double, n, 1> qd;
+                    Eigen::Matrix<double, n, 1> qdd;
+                    
+                    Eigen::VectorXd pos_eq;
+                    Eigen::VectorXd vel_eq;
+                    Eigen::VectorXd acc_eq;
+                    
+                    std::vector<Eigen::MatrixXd> jac_eq;
+                    std::vector<Eigen::MatrixXd> mas_eq;
+                    
+                    Eigen::VectorXd rows = Eigen::VectorXd::LinSpaced(nrows, 0, nrows-1);
+
+                    Eigen::VectorXd jac_rows;
+                    Eigen::VectorXd jac_cols;
+                    
+                    Dict_SI indicies_map;
+                    
+                    
+                public:
+                
+                    // Topology Constructors.
+                    Topology();
+                    Topology(std::string);
+                    
+                    // Base Configuration object.
+                    Configuration config;
+                
+                    // Topology initializing functions.
+                    void initialize();
+                    void assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset);
+                    void set_initial_states();
+                    void eval_constants();
+                    
+                    // Topology Equations Evaluators.
+                    void eval_pos_eq();
+                    void eval_vel_eq();
+                    void eval_acc_eq();
+                    void eval_jac_eq();
+                    
+                    // Topology States Setters.
+                    void set_gen_coordinates(const Eigen::Ref<Eigen::VectorXd>& q);
+                    void set_gen_velocities(const Eigen::Ref<Eigen::VectorXd>& qd);
+                    void set_gen_accelerations(const Eigen::Ref<Eigen::VectorXd>& qdd);
+                
+                private:
+                    void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
+                
+                // Topology Bodies Indicies from the network graph.                    
+                public:
+                    {bodies}
+                
+                // Topology Generalized Coordinates (R and P vectors).
+                public:
+                    {coordinates}
+                
+                // Topology Generalized Velocities (dR/dt and dP/dt vectors).
+                public:
+                    {velocities}
+                
+                // Topology Generalized Accelerations (dR2/dt2 and dP2/dt2 vectors).
+                public:
+                    {accelerations}
+                
+                // Configuration Constants.
+                public:    
+                    {constants}
+                
+                }};
+                '''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        p = self.printer
+        
+        primary_aruments = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
+                                      set(self.mbs.arguments_symbols)])
+        primary_aruments = textwrap.indent(primary_aruments, 4*' ').lstrip()
+        
+        bodies_indices = '\n'.join(['int %s ;'%i for i in self.bodies])
+        bodies_indices = textwrap.indent(bodies_indices, 4*' ').lstrip()
+
+        
+        coordinates = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
+                                 self.gen_coordinates_exp[2:]])
+        coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
+
+        velocities = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in 
+                                self.gen_velocities_exp])
+        velocities = textwrap.indent(velocities, 4*' ').lstrip()
+
+        accelerations = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
+                                   self.gen_accelerations_exp])
+        accelerations = textwrap.indent(accelerations, 4*' ').lstrip()
+
+        constants = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
+                               set(self.mbs.constants_symbols)])
+        constants = textwrap.indent(constants, 4*' ').lstrip()
+        
+        text = text.format(primary_arguments = primary_aruments,
+                           bodies = bodies_indices,
+                           coordinates = coordinates,
+                           velocities = velocities,
+                           accelerations = accelerations,
+                           constants = constants,
+                           n = self.mbs.n,
+                           nc = self.mbs.nc,
+                           nve = self.mbs.nve,
+                           nodes = len(self.bodies))        
+        return text
+    
+    def write_header_file(self, dir_path=''):
+        file_path = os.path.join(dir_path, self.name)
+        system_class = self.write_header_class()
+        with open('%s.hpp'%file_path, 'w') as file:
+            file.write(system_class)
+        print('File full path : %s.hpp'%file_path)
+    
+    
+    def write_source_file(self, dir_path=''):
+        file_path = os.path.join(dir_path, self.name)
+        system_class = self.write_source_content()
+        with open('%s.cpp'%file_path, 'w') as file:
+            file.write(system_class)
+        print('File full path : %s.cpp'%file_path)
+
+
+    def write_source_content(self):
+        text = '''
+                #include "{file_name}.hpp"
+                
+                {configuration_setter}
+                
+                {constructor}
+                
+                {assemblers}
+                
+                {setters}
+                
+                {evaluators}
+                
+               '''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        configuration_setter = self.write_configuration_setter()
+        
+        constructor = self.write_class_constructor()
+        assemblers  = self.write_template_assembler()
+        
+        setters = ''.join([self.write_coordinates_setter(),
+                           self.write_velocities_setter(),
+                           self.write_accelerations_setter()])
+            
+        evaluators = ''.join([self.write_constants_eval(),
+                              self.write_pos_equations(),
+                              self.write_vel_equations(),
+                              self.write_acc_equations(),
+                              self.write_jac_equations()])
+        
+        text = text.format(file_name = self.name,
+                           configuration_setter = configuration_setter,
+                           constructor = constructor,
+                           assemblers = assemblers,
+                           setters = setters,
+                           evaluators = evaluators)
+        return text
+
+
+    def write_class_constructor(self):
+        text = '''
+                Topology::Topology(){{}};
+                Topology::Topology(std::string prefix = "")
+                {{
+                    this-> prefix = prefix;
+                    
+                    q0.resize(n);
+                    
+                    pos_eq.resize(nc);
+                    vel_eq.resize(nc);
+                    acc_eq.resize(nc);
+                    
+                    jac_eq.reserve(jac_rows.size());
+                    
+                    {indicies_map}
+                }};
+               '''
+        
+        indent = ''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        indicies_map = '\n'.join(['indicies_map[prefix + "%s"] = %s;'%(n,i) for i,n in enumerate(self.bodies)])
+        indicies_map = textwrap.indent(indicies_map, 4*' ').lstrip()
+        
+        text = text.format(indicies_map = indicies_map)
+        text = textwrap.indent(text,indent)
+        
+        return text
+        
+        
+    def write_template_assembler(self):
+        text = '''
+                void Topology::initialize()
+                {{
+                    Dict_SS interface_map;
+                    t = 0;
+                    assemble(indicies_map, interface_map, 0);
+                    set_initial_states();
+                    eval_constants();
+                    
+                }};
+                    
+                                
+                void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset)
+                {{
+                    set_mapping(indicies_map, interface_map);
+                    rows += (rows_offset * Eigen::VectorXd::Ones(rows.size()) );
+                    
+                    jac_rows.resize({nnz});
+                    jac_rows << {jac_rows};
+                    jac_rows += (rows_offset * Eigen::VectorXd::Ones(jac_rows.size()) );
+                    
+                    jac_cols.resize({nnz});
+                    jac_cols << 
+                        {jac_cols};
+                }};
+                    
+                
+                void Topology::set_initial_states()
+                {{
+                    set_gen_coordinates(config.q);
+                    set_gen_velocities(config.qd);
+                    q0 = config.q;
+                }};
+                
+                
+                void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
+                {{
+                    auto& p = this-> prefix;
+                    
+                    {indicies_map}
+                    
+                    {virtuals}
+                }};
+                
+               '''
+        
+        indent = ''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        indicies_map = '\n'.join(['%s = indicies_map[p+"%s"];'%(i, i) for i in self.bodies])
+        indicies_map = textwrap.indent(indicies_map, 4*' ').lstrip()
+        
+        virtuals = '\n'.join(['%s = indicies_map[interface_map[p+"%s"];'%(i, i) for i in self.mbs.virtual_bodies])
+        virtuals = textwrap.indent(virtuals, indent).lstrip()
+        
+        ind_body = {v:k for k,v in self.mbs.nodes_indicies.items()}
+        rows, cols, data = zip(*self.mbs.jac_equations.row_list())
+        string_cols = [('%s*2'%ind_body[i//2] if i%2==0 else '%s*2+1'%ind_body[i//2]) for i in cols]
+        string_cols_text = ', \n'.join(string_cols)
+        string_cols_text = textwrap.indent(string_cols_text, 8*' ').lstrip()
+        
+        jac_rows = str(rows)
+        
+        text = text.format(nnz = len(data),
+                           indicies_map = indicies_map,
+                           virtuals = virtuals,
+                           jac_rows = jac_rows[1:-1],
+                           jac_cols = string_cols_text)
+        text = textwrap.indent(text,indent)
+        return text
+    
+    def write_constants_eval(self):
+        text = '''
+                void Topology::eval_constants()
+                {{
+                    auto& config = this-> config;
+                    
+                    {num_constants}
+                    
+                    {sym_constants}
+                }};
+                '''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        printer = self.printer
+        indent = ''
+                
+        config_pattern_iter = itertools.chain(self.arguments_symbols,
+                                              self.virtual_coordinates)
+        config_pattern = '|'.join(config_pattern_iter)
+        config_inserter = self._insert_string('config.')
+        
+        self_pattern_iter = itertools.chain(self.constants_symbols)
+        self_pattern = '|'.join(self_pattern_iter)
+        self_inserter = self._insert_string('')
+        
+        num_constants_list = self.constants_numeric_expr
+        num_constants_text = '\n'.join((printer._print(i) for i in num_constants_list))
+        num_constants_text = re.sub(config_pattern, config_inserter, num_constants_text)
+        num_constants_text = re.sub(self_pattern, self_inserter, num_constants_text)
+        num_constants_text = textwrap.indent(num_constants_text, 4*' ').lstrip()
+
+        
+        sym_constants = self.constants_symbolic_expr
+        sym_constants_text = '\n'.join((printer._print(i) for i in sym_constants))
+        sym_constants_text = re.sub(config_pattern, config_inserter, sym_constants_text)
+        sym_constants_text = re.sub(self_pattern, self_inserter, sym_constants_text)
+        sym_constants_text = textwrap.indent(sym_constants_text, 4*' ').lstrip()
+        
+
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        text = text.format(sym_constants = sym_constants_text,
+                           num_constants = num_constants_text)
+        text = textwrap.indent(text,indent)
+        return text
+
+    def write_configuration_setter(self):
+        text = '''
+                void Configuration::constructFromJSON(std::string fileName)
+                {{
+                    std::cout << "Constructing Configuration Inputs" << std::endl;
+                    this->ConfigInputs.constructFromJSON(fileName);
+
+                    std::cout << "Populating Configuration Arguments!" << std::endl;
+                    this->populateArguments();
+                }};
+
+
+                void Configuration::populateArguments()
+                {{
+                    {primary_arguments}
+                }};
+
+                void Configuration::set_inital_configuration()
+                {{
+                    R_ground << 0, 0, 0 ;
+                    P_ground << 1, 0, 0, 0 ;
+
+                    q.resize({n});
+                    q << 
+                        {q_equalities};
+                    
+                    qd.resize({n});
+                    qd << 
+                        {qd_equalities};
+                }};
+               '''
+        
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        indent = ''
+                
+        
+        self_inserter = self._insert_string('')
+        
+        primary_arguments = '\n'.join(['ConfigInputs.get("%s", %s);'%(i, i) for i 
+                                      in self.primary_arguments])
+        primary_arguments = textwrap.indent(primary_arguments, 4*' ').lstrip()
+
+        q_pattern = '|'.join(self.gen_coordinates_sym)
+        q_equalities = ', \n'.join(['%s'%q for q in self.gen_coordinates_sym])
+        q_equalities = re.sub(q_pattern, self_inserter, q_equalities)
+        q_equalities = textwrap.indent(q_equalities, 8*' ').lstrip()
+        
+        qd_pattern = '|'.join(self.gen_velocities_sym)
+        qd_equalities = ', \n'.join(['%s'%q for q in self.gen_velocities_sym])
+        qd_equalities = re.sub(qd_pattern, self_inserter, qd_equalities)
+        qd_equalities = textwrap.indent(qd_equalities, 8*' ').lstrip()
+        
+        text = text.format(n = self.mbs.n,
+                           primary_arguments = primary_arguments,
+                           q_equalities = q_equalities,
+                           qd_equalities = qd_equalities)
+        text = textwrap.indent(text, indent)
+        return text
+    
+    def write_coordinates_setter(self):
+        return self._write_x_setter('gen_coordinates','q')
+    
+    def write_velocities_setter(self):
+        return self._write_x_setter('gen_velocities','qd')
+    
+    def write_accelerations_setter(self):
+        return self._write_x_setter('gen_accelerations','qdd')
+    
+    def write_lagrange_setter(self):
+        return self._write_x_setter('lagrange_multipliers','Lambda')
+        
+    def write_pos_equations(self):
+        return self._write_x_equations('pos')
+    
+    def write_vel_equations(self):
+        return self._write_x_equations('vel')
+    
+    def write_acc_equations(self):
+        return self._write_x_equations('acc')
+    
+    def write_jac_equations(self):
+        return self._write_x_equations('jac', std_vector=True)
+    
+    def write_forces_equations(self):
+        return self._write_x_equations('frc')
+    
+    def write_mass_equations(self):
+        return self._write_x_equations('mass', std_vector=True)
+    
+    def write_reactions_equations(self):
+        text = '''
+                def eval_reactions_eq(self):
+                    config  = self.config
+                    t = self.t
+                    
+                    {equations_text}
+                    
+                    self.reactions = {reactions}
+                '''
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        indent = 4*' '
+        p = self.printer
+        
+        equations = self.mbs.reactions_equalities
+        equations_text = '\n'.join([p._print(expr) for expr in equations])
+        
+        self_pattern = itertools.chain(self.runtime_symbols,
+                                       self.constants_symbols,
+                                       self.joint_reactions_sym,
+                                       self.lagrange_multipliers_sym)
+        self_pattern = '|'.join(self_pattern)
+        self_inserter = self._insert_string('self.')
+        equations_text = re.sub(self_pattern,self_inserter,equations_text)
+        
+        config_pattern = set(self.primary_arguments) - set(self.runtime_symbols)
+        config_pattern = '|'.join([r'%s'%i for i in config_pattern])
+        config_inserter = self._insert_string('config.')
+        equations_text = re.sub(config_pattern,config_inserter,equations_text)
+                
+        equations_text = textwrap.indent(equations_text,indent).lstrip() 
+        
+        reactions = ',\n'.join(['%r : self.%s'%(i,i) for i in self.joint_reactions_sym])
+        reactions = textwrap.indent(reactions, 5*indent).lstrip()
+        reactions = '{%s}'%reactions
+        
+        text = text.format(equations_text = equations_text,
+                           reactions = reactions)
+        text = textwrap.indent(text,indent)
+        return text
+
+    
+    ###########################################################################
+    ###########################################################################
+
+    def _write_x_setter(self,func_name,var='q'):
+        text = '''
+                void Topology::set_%s(const Eigen::Ref<Eigen::VectorXd>& %s)
+                {
+                    this-> %s << %s;
+                };
+               '''%(func_name, var, var, var)
+        
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        indent = ''
+        text = textwrap.indent(text,indent)
+        return text
+
+    
+    def _write_x_equations(self, eq_initial, std_vector=False):
+        text = '''
+                 void Topology::eval_{eq_initial}_eq()
+                 {{
+                     auto& config = this-> config;
+                     auto& t = this-> t;
+
+                     {replacements}
+                                        
+                     {eq_initial}_eq {operator} 
+                         {expressions};
+                 }};
+                '''
+        
+        text = text.expandtabs()
+        text = textwrap.dedent(text)
+        
+        printer = self.printer
+        indent = ''
+        
+        operator = '=' if std_vector else '<<'
+        
+        # Geting the optimized equations' vector/matrix from the topology class.
+        # The expected format is two lists [replacements] and [expressions].
+        replacements_list = getattr(self.mbs, '%s_rep'%eq_initial)
+        expressions_list  = getattr(self.mbs, '%s_exp'%eq_initial)
+        # Extracting the vector/matrix from the returned expressions list.
+        vector_expr = expressions_list[0]
+        # Extracting the Non-Zero values of the vector/matrix.
+        vector_data = [i[-1] for i in vector_expr.row_list()]
+        
+        # Extract the numerical format of the replacements and expressions into
+        # a list of string expressions.
+        num_repl_list = ['auto&& %s'%(printer._print(exp, declare=False, is_ref=True)) for exp in replacements_list]
+        num_expr_list = [printer._print(exp) for exp in vector_data]
+        
+        # Joining the extracted strings to form a valid text block.
+        num_repl_text = '\n'.join(num_repl_list)
+        num_expr_text = ',\n'.join(num_expr_list)
+
+        # Creating a regex pattern of strings that represents the variables
+        # which need to be perfixed by a 'self.' to be referenced correctly.
+        self_pattern = itertools.chain(self.runtime_symbols,
+                                       self.constants_symbols)
+        self_pattern = '|'.join(self_pattern)
+        
+        # Creating a regex pattern of strings that represents the variables
+        # which need to be perfixed by a 'config.' to be referenced correctly.
+        config_pattern = set(self.primary_arguments) - set(self.runtime_symbols)
+        config_pattern = '|'.join([r'%s'%i for i in config_pattern])
+        
+        # Performing the regex substitution with 'self.'.
+        self_inserter = self._insert_string('')
+        num_repl_text = re.sub(self_pattern, self_inserter, num_repl_text)
+        num_expr_text = re.sub(self_pattern, self_inserter, num_expr_text)
+        
+        # Performing the regex substitution with 'config.'.
+        config_inserter = self._insert_string('config.')
+        num_repl_text = re.sub(config_pattern, config_inserter, num_repl_text)
+        num_expr_text = re.sub(config_pattern, config_inserter, num_expr_text)
+        
+        # Indenting the text block for propper class and function indentation.
+        num_repl_text = textwrap.indent(num_repl_text, 4*' ').lstrip() 
+        num_expr_text = textwrap.indent(num_expr_text, 8*' ').lstrip()
+        
+        num_expr_text = '{%s}'%num_expr_text if std_vector else num_expr_text
+        
+        text = text.format(eq_initial  = eq_initial,
+                           replacements = num_repl_text,
+                           expressions  = num_expr_text,
+                           operator = operator)
+        text = textwrap.indent(text,indent)
+        return text
+    
+
+###############################################################################
+###############################################################################
+
 
 
