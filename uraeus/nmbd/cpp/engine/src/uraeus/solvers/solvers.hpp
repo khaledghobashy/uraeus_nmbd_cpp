@@ -167,14 +167,14 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
     //std::cout << guess << "\n";
     set_gen_coordinates(guess);
     //std::cout << "Evaluating Pos_Eq " << "\n";
-    auto b = eval_pos_eq();
+    auto&& b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
-    auto A = eval_jac_eq();
+    auto&& A = eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
     SparseSolver.compute(A);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd error = SparseSolver.solve(-b);
+    Eigen::VectorXd&& error = SparseSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -290,7 +290,7 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     std::ofstream results_file;
 
     std::map<int, std::string> ordered_indicies;
-    for (auto x : model.indicies_map)
+    for (auto& x : model.indicies_map)
     {
         ordered_indicies[x.second] = x.first;
     };
@@ -299,9 +299,9 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     // in the .csv file
     std::string indicies = "";
     std::vector<std::string> coordinates{"x", "y", "z", "e0", "e1", "e2", "e3"};
-    for (auto x : ordered_indicies)
+    for (auto& x : ordered_indicies)
     {
-        auto body_name = x.second;
+        auto& body_name = x.second;
         for (auto& coordinate : coordinates)
         {
           indicies += body_name + "." + coordinate + "," ;
@@ -316,7 +316,7 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
 
     // Looping over the results and writing each line to the .csv file.
     int i = 0;
-    for (auto x : data)
+    for (auto& x : data)
     {
         results_file << std::to_string(i) + ", ";
         results_file << x.transpose().format(CSVFormat) ;
