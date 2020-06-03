@@ -6,6 +6,7 @@ target_link_libraries(dwb_lib PRIVATE configuration)
 target_link_libraries(dwb_lib PRIVATE spatial_algebra)
 target_link_libraries(dwb_lib PRIVATE euler_parameters)
 target_link_libraries(dwb_lib PRIVATE helpers)
+target_link_libraries(dwb_lib PRIVATE utilities)
 
 add_executable(dwb main.cpp)
 
@@ -14,3 +15,4 @@ target_link_libraries(dwb PRIVATE configuration)
 target_link_libraries(dwb PRIVATE spatial_algebra)
 target_link_libraries(dwb PRIVATE euler_parameters)
 target_link_libraries(dwb PRIVATE helpers)
+target_link_libraries(dwb PRIVATE utilities)
