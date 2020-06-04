@@ -218,7 +218,7 @@ void Solver<T>::Solve()
     auto samples = time_array.size();
     
     //std::cout << "Setting Initial Position History" << "\n";
-    pos_history.emplace_back(model_ptr-> q0);
+    pos_history.emplace_back(model_ptr-> q);
 
     Eigen::VectorXd v0, vi, a0, ai, guess;
 
