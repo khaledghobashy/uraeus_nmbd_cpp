@@ -31,11 +31,13 @@ public:
     std::vector<Eigen::VectorXd> vel_history;
     std::vector<Eigen::VectorXd> acc_history;
 
-    SparseBlock Jacobian;
+    //SparseBlock Jacobian;
+    Eigen::MatrixXd Jacobian;
     std::vector<int> jac_rows;
     std::vector<int> jac_cols;
 
-    Eigen::SparseLU<SparseBlock> SparseSolver;
+    //Eigen::SparseLU<SparseBlock> SparseSolver;
+    Eigen::PartialPivLU<Eigen::MatrixXd> DenseSolver;
 
 public:
 
@@ -49,7 +51,7 @@ public:
     Eigen::VectorXd eval_pos_eq();
     Eigen::VectorXd eval_vel_eq();
     Eigen::VectorXd eval_acc_eq();
-    void eval_jac_eq();
+    Eigen::MatrixXd eval_jac_eq();
 
     void solve_constraints(Eigen::VectorXd& guess);
     void Solve();
@@ -139,11 +141,11 @@ Eigen::VectorXd Solver<T>::eval_acc_eq()
 
 
 template<class T>
-void Solver<T>::eval_jac_eq()
+Eigen::MatrixXd Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();    
-    SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
-    //return Jacobian;
+    DenseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
+    return Jacobian;
 };
 
 
@@ -160,12 +162,12 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
     //std::cout << "Evaluating Pos_Eq " << "\n";
     auto&& b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
-    eval_jac_eq();
+    auto&& A = eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
-    SparseSolver.compute(Jacobian);
+    DenseSolver.compute(A);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd&& error = SparseSolver.solve(-b);
+    Eigen::VectorXd&& error = DenseSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -175,13 +177,12 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
         guess += error;
         q << guess;
         b = eval_pos_eq();
-        error = SparseSolver.solve(-b);
+        error = DenseSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
         {
-            eval_jac_eq();
-            SparseSolver.compute(Jacobian);
-            error = SparseSolver.solve(-b);
+            A = eval_jac_eq();
+            error = A.lu().solve(-b);
         };
 
         if (itr>50)
@@ -194,8 +195,7 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
     };
     
     q << guess;
-    eval_jac_eq();
-    SparseSolver.compute(Jacobian);
+    //DenseSolver.compute(eval_jac_eq());
 };
 
 
@@ -219,18 +219,18 @@ void Solver<T>::Solve()
     acc_history.reserve(samples);
 
     //std::cout << "Computing Jacobian" << "\n";
-    eval_jac_eq();
+    auto&& A = eval_jac_eq();
     //std::cout << "Jacobian =  \n" << A << "\n";
     //std::cout << "Factorizing Jacobian" << "\n";
-    SparseSolver.compute(Jacobian);
+    //DenseSolver.compute(A);
 
     //std::cout << "Solving for Velocity" << "\n";
-    qd << SparseSolver.solve(-eval_vel_eq());
+    qd << A.lu().solve(-eval_vel_eq());
     //std::cout << "Storing Generalized Velocities" << "\n";
     vel_history.emplace_back(qd);
     
     //std::cout << "Solving for Accelerations" << "\n";
-    qdd << SparseSolver.solve(-eval_acc_eq());
+    qdd << A.lu().solve(-eval_acc_eq());
     acc_history.emplace_back(qdd);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -248,8 +248,10 @@ void Solver<T>::Solve()
 
         solve_constraints(guess);
 
-        qd  << SparseSolver.solve(-eval_vel_eq());
-        qdd << SparseSolver.solve(-eval_acc_eq());
+        auto&& A = eval_jac_eq();
+
+        qd  << A.lu().solve(-eval_vel_eq());
+        qdd << A.lu().solve(-eval_acc_eq());
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);

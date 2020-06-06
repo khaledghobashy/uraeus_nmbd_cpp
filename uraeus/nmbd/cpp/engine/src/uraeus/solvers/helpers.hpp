@@ -18,5 +18,5 @@ typedef std::vector<Eigen::MatrixXd> DataBlocks;
 
 double derivative(std::function<double(double)> func, double x, int order);
 void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
-
+void DenseAssembler(Eigen::MatrixXd& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
 

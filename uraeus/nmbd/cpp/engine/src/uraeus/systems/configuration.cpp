@@ -21,10 +21,19 @@ std::map<std::string, void (ConfigurationAssembler::*)(rapidjson::Value::ConstMe
 
 // ConfigurationAssembler Class Constructors
 // =========================================
-ConfigurationAssembler::ConfigurationAssembler(){};
+ConfigurationAssembler::ConfigurationAssembler()
+    :
+        config_map()
+{
+    //std::cout << "\nCalling ConfigurationAssembler::ConfigurationAssembler\n";
+    //std::cout << "\n";
+};
 ConfigurationAssembler::ConfigurationAssembler(const std::string& fileName)
+    :
+        config_map()
 {
     this->constructFromJSON(fileName);
+    //std::cout << "Calling ConfigurationAssembler::ConfigurationAssembler(fileName)" << std::endl;
 };
 
 /*
@@ -62,12 +71,15 @@ void ConfigurationAssembler::constructConfiguration(rapidjson::Document& documen
     
     std::cout << "Constructing Inputs!" << "\n";
     this->constructInputs(inputsObject);
+    std::cout << "Inputs Constructed!" << "\n";
 
     std::cout << "Constructing Helpers!" << "\n";
     this->constructEvaluations(evalObject);
+    std::cout << "Helpers Constructed!" << "\n";
     
     std::cout << "Evaluating Outputs!" << "\n";
     this->constructOutputs(outObject);
+    std::cout << "Outputs Constructed!" << "\n";
 
 };
 
@@ -165,7 +177,7 @@ void ConfigurationAssembler::constructObject(const std::string& constructor_,
     try { (this->*Constructors.at(constructor_))(object); }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        //std::cerr << e.what() << '\n';
         std::cerr << "Constructor " << constructor_ << " has no mapped construction method!" << "\n";
     }
 };
@@ -193,16 +205,25 @@ void ConfigurationAssembler::Array(rapidjson::Value::ConstMemberIterator item)
     // (3x1) Vector case:
     if (array.Size() == 3)
     {
+        //std::cout << "config_map.size() = " << config_map.size() << std::endl;
+        //std::cout << "Constructing Vector3d " << elementName << "\n" << "\n";
         // Declaring a (3x1) vector v of type double.
         Eigen::Vector3d v;
 
         // Populizing the vector with the acquired array values.
         for (SizeType i = 0; i < array.Size(); i++)
         {
-            v[i] = array[i].GetDouble(); // Getting the array value as double
+            //std::cout << "config_map.size() = " << config_map.size() << std::endl;
+
+            auto x = array[i].GetDouble();
+            //std::cout << x << std::endl;
+            v[i] = x; // Getting the array value as double
         };
 
-        this->config_map[elementName] = v;
+        //std::cout << elementName << "\n" << v << std::endl;
+        //config_map.insert(std::pair<std::string,Eigen::Vector3d>(elementName,v)); 
+        config_map[elementName] = v;
+        //std::cout << "Constructed Array " << elementName << "\n" << v << "\n";
     }
     
     // Checking the size of the array to construct the appropriate vector.
@@ -232,6 +253,7 @@ void ConfigurationAssembler::Array(rapidjson::Value::ConstMemberIterator item)
         };
         this->config_map[elementName] = v;
     }
+
 };
 // ----------------------------------------------------------------------------
 
@@ -352,8 +374,8 @@ void ConfigurationAssembler::Mirrored(rapidjson::Value::ConstMemberIterator item
     std::string elementName = item->name.GetString();
     std::string arg = value[0].GetString();
 
-    if ((arg.rfind("P"   , 0) == 0) | (arg.rfind("Pd"  , 0) == 0) | 
-        (arg.rfind("Pdd" , 0) == 0) | (arg.rfind("Jbar", 0)) == 0 )
+    if ((arg.rfind("P"   , 0) == 0) || (arg.rfind("Pd"  , 0) == 0) || 
+        (arg.rfind("Pdd" , 0) == 0) || (arg.rfind("Jbar", 0)) == 0 )
     {
         //std::cout << arg << std::endl;
         config_map[elementName] = config_map[arg];
@@ -435,7 +457,7 @@ void ConfigurationAssembler::getattribute(rapidjson::Value::ConstMemberIterator 
     catch (const std::out_of_range e)
     {
         std::cout << e.what() << std::endl;
-        std::cout << "Argument not initialized! " << key << std::endl;
+        std::cout << "Argument (" << key << ") is not initialized!\n";
     }
 
 };
