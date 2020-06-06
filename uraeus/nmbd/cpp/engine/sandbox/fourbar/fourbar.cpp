@@ -1,28 +1,48 @@
 #include "uraeus/solvers/solvers.hpp"
 
-#include "spatial_fourbar.hpp"
+#include "new_API/spatial_fourbar.hpp"
+//#include "spatial_fourbar.hpp"
 
 
-int main()
+void test_model()
 {
-    Topology model{""};
+    Eigen::VectorXd q(Topology::n);
+    Eigen::VectorXd qd(Topology::n);
+    Eigen::VectorXd qdd(Topology::n);
 
-    Configuration& Config = model.config;
+    Topology model("", q, qd, qdd);
+    model.config.constructFromJSON("fourbar.json");
+
+}
+
+void test_Solver()
+{
+    //ConfigurationAssembler Config("fourbar.json");
+
+    Solver<Topology> Soln{};
     
-    Config.constructFromJSON("fourbar.json");
+    Soln.model.config.constructFromJSON("fourbar.json");
     std::cout << "Constructed JSON File" << std::endl;
 
-    Config.set_inital_configuration();
+    Soln.model.config.set_inital_configuration();
 
-    Config.UF_mcs_act = [](double t)->double{return 2*(22.0/7)*t;};
+    Soln.model.config.UF_mcs_act = [](double t)->double{return 2*(22.0/7)*t;};
 
     std::cout << "\nInitializing Model!" << std::endl;
-    model.initialize();
+    Soln.initialize();
 
-    Solver<Topology> Soln(model);
+    //std::cout << "Soln.q = \n" << Soln.q << "\n";
+    //std::cout << "model.q = \n" << Soln.model.coord.m_q << "\n";
+
     Soln.set_time_array(5, 5e-3);
     Soln.Solve();
     Soln.ExportResultsCSV("", "pos", 0);
 
+}
+
+int main()
+{
+    //test_model();
+    test_Solver();
     return 0;
 }

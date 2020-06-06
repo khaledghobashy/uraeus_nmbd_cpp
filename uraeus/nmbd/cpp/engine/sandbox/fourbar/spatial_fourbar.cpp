@@ -1,14 +1,27 @@
 
 #include "spatial_fourbar.hpp"
 
+// ============================================================================
+//                     Configuration Class Implementation
+// ============================================================================
 
-void Configuration::constructFromJSON(std::string fileName)
+Configuration::Configuration()
+    :
+        ConfigInputs()
 {
-    std::cout << "Constructing Configuration Inputs" << std::endl;
-    this->ConfigInputs.constructFromJSON(fileName);
+    std::cout << "\nCalling Configuration::Configuration" << std::endl;
+    std::cout << "\n";
+}
+
+void Configuration::constructFromJSON(const std::string& fileName)
+{
+    std::cout << "\nConstructing Configuration Inputs" << std::endl;
+    ConfigInputs.constructFromJSON(fileName);
 
     std::cout << "Populating Configuration Arguments!" << std::endl;
-    this->populateArguments();
+    populateArguments();
+    std::cout << "\n";
+
 };
 
 
@@ -80,87 +93,63 @@ void Configuration::set_inital_configuration()
         Pd_rbs_l3;
 };
 
-Topology::Topology()
+// ============================================================================
+//                     Coordinates Struct Constructor
+// ============================================================================
+
+Coordinates::Coordinates(Eigen::Ref<Eigen::VectorXd> q, 
+                         Eigen::Ref<Eigen::VectorXd> qd, 
+                         Eigen::Ref<Eigen::VectorXd> qdd)
+    : // Initializer list initializing the needed struct memebrs.
+        m_q(q), m_qd(qd), m_qdd(qdd)
 {
-    std::cout << "Calling default constructor of Topology! \n";
+    std::cout << "\nCalling Coordinates::Coordinates()\n";
+    std::cout << "Initialized Coordinates!\n";
+    std::cout << "\n";
 };
-Topology::Topology(std::string name="")
+
+
+// ============================================================================
+//                     Topology Class Implementation
+// ============================================================================
+
+// Topology Constructor
+// ====================
+Topology::Topology(std::string name, 
+            Eigen::Ref<Eigen::VectorXd> q, 
+            Eigen::Ref<Eigen::VectorXd> qd, 
+            Eigen::Ref<Eigen::VectorXd> qdd)
+
+    : // Initializer list initializing the needed struct memebrs.
+        prefix(name), coord(q, qd, qdd), config()
+
 {
-    std::cout << "Calling Topology::Topology(std::string name)! \n";
-    this-> prefix = prefix;
-
-    q.resize(n);
-    qd.resize(n);
-    qdd.resize(n);
-
-    map_gen_coordinates();
-    map_gen_velocities();
-    map_gen_accelerations();
+    std::cout << "\nCalling Topology::Topology(std::string name)! \n";
 
     pos_eq.resize(nc);
     vel_eq.resize(nc);
     acc_eq.resize(nc);
-
     jac_eq.reserve(jac_rows.size());
 
-    std::cout << q << std::endl;
+    std::cout << "\n";
 };
 
+// Topology initializer and assembler
+// ==================================
 void Topology::initialize()
 {
     Dict_SS interface_map;
-    t = 0;
     map_indicies();
     assemble(indicies_map, interface_map, 0);
-    set_initial_states();
+    coord.m_q << config.q;
     eval_constants();
-
 };
 
 void Topology::map_indicies()
 {
     int i = 0;
-    for (auto& name : names)
-    {
-        indicies_map[prefix + name] = i;
-        i++;
-    };
+    for (auto& name : names) {indicies_map[prefix + name] = i; i++;};
 };
-
-void Topology::map_gen_coordinates()
-{
-    new (&R_rbs_l1) Eigen::Ref<Eigen::Vector3d> (q.segment( 7, 3));
-    new (&P_rbs_l1) Eigen::Ref<Eigen::Vector4d> (q.segment(10, 4));
-    new (&R_rbs_l2) Eigen::Ref<Eigen::Vector3d> (q.segment(14, 3));
-    new (&P_rbs_l2) Eigen::Ref<Eigen::Vector4d> (q.segment(17, 4));
-    new (&R_rbs_l3) Eigen::Ref<Eigen::Vector3d> (q.segment(21, 3));
-    new (&P_rbs_l3) Eigen::Ref<Eigen::Vector4d> (q.segment(24, 4));
-}
-
-void Topology::map_gen_velocities()
-{
-    new (&Rd_ground) Eigen::Ref<Eigen::Vector3d> (qd.segment( 0, 3));
-    new (&Pd_ground) Eigen::Ref<Eigen::Vector4d> (qd.segment( 3, 4));
-    new (&Rd_rbs_l1) Eigen::Ref<Eigen::Vector3d> (qd.segment( 7, 3));
-    new (&Pd_rbs_l1) Eigen::Ref<Eigen::Vector4d> (qd.segment(10, 4));
-    new (&Rd_rbs_l2) Eigen::Ref<Eigen::Vector3d> (qd.segment(14, 3));
-    new (&Pd_rbs_l2) Eigen::Ref<Eigen::Vector4d> (qd.segment(17, 4));
-    new (&Rd_rbs_l3) Eigen::Ref<Eigen::Vector3d> (qd.segment(21, 3));
-    new (&Pd_rbs_l3) Eigen::Ref<Eigen::Vector4d> (qd.segment(24, 4));
-}
-
-
-void Topology::map_gen_accelerations()
-{
-    new (&Rdd_ground) Eigen::Ref<Eigen::Vector3d> (qdd.segment( 0, 3));
-    new (&Pdd_ground) Eigen::Ref<Eigen::Vector4d> (qdd.segment( 3, 4));
-    new (&Rdd_rbs_l1) Eigen::Ref<Eigen::Vector3d> (qdd.segment( 7, 3));
-    new (&Pdd_rbs_l1) Eigen::Ref<Eigen::Vector4d> (qdd.segment(10, 4));
-    new (&Rdd_rbs_l2) Eigen::Ref<Eigen::Vector3d> (qdd.segment(14, 3));
-    new (&Pdd_rbs_l2) Eigen::Ref<Eigen::Vector4d> (qdd.segment(17, 4));
-    new (&Rdd_rbs_l3) Eigen::Ref<Eigen::Vector3d> (qdd.segment(21, 3));
-    new (&Pdd_rbs_l3) Eigen::Ref<Eigen::Vector4d> (qdd.segment(24, 4));
-}
 
 
 void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset)
@@ -227,13 +216,6 @@ void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_
 };
 
 
-void Topology::set_initial_states()
-{
-    q << config.q;
-    qd << config.qd;
-};
-
-
 void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
 {
     auto& p = this-> prefix;
@@ -241,16 +223,12 @@ void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
     ground = indicies_map[p+"ground"];
     rbs_l1 = indicies_map[p+"rbs_l1"];
     rbs_l2 = indicies_map[p+"rbs_l2"];
-    rbs_l3 = indicies_map[p+"rbs_l3"];
-
-    
+    rbs_l3 = indicies_map[p+"rbs_l3"];    
 };
 
 
 void Topology::eval_constants()
 {
-    auto& config = this-> config;
-
     R_ground << 0, 0, 0 ;
     P_ground << 1, 0, 0, 0 ;
     Pg_ground << 1, 0, 0, 0 ;
@@ -282,23 +260,20 @@ void Topology::eval_constants()
 
 void Topology::eval_pos_eq()
 {
-    auto& config = this-> config;
-    auto& t = this-> t;
-
     auto&& x0 = R_ground ;
-    auto&& x1 = R_rbs_l1 ;
+    auto&& x1 = coord.R_rbs_l1 ;
     auto&& x2 = P_ground ;
     auto&& x3 = A(x2) ;
-    auto&& x4 = P_rbs_l1 ;
+    auto&& x4 = coord.P_rbs_l1 ;
     auto&& x5 = A(x4) ;
     auto&& x6 = x3.transpose() ;
     auto&& x7 = Mbar_rbs_l1_jcs_a.col(2) ;
     auto&& x8 = Mbar_rbs_l1_jcs_a.col(0) ;
-    auto&& x9 = R_rbs_l2 ;
-    auto&& x10 = P_rbs_l2 ;
+    auto&& x9 = coord.R_rbs_l2 ;
+    auto&& x10 = coord.P_rbs_l2 ;
     auto&& x11 = A(x10) ;
-    auto&& x12 = R_rbs_l3 ;
-    auto&& x13 = P_rbs_l3 ;
+    auto&& x12 = coord.R_rbs_l3 ;
+    auto&& x13 = coord.P_rbs_l3 ;
     auto&& x14 = A(x13) ;
     auto&& x15 = x14.transpose() ;
     auto&& x16 = Mbar_ground_jcs_d.col(2) ;
@@ -324,9 +299,6 @@ void Topology::eval_pos_eq()
 
 void Topology::eval_vel_eq()
 {
-    auto& config = this-> config;
-    auto& t = this-> t;
-
     auto&& v0 = Eigen::MatrixXd::Zero(3, 1) ;
     auto&& v1 = Eigen::MatrixXd::Zero(1, 1) ;
 
@@ -350,18 +322,15 @@ void Topology::eval_vel_eq()
 
 void Topology::eval_acc_eq()
 {
-    auto& config = this-> config;
-    auto& t = this-> t;
-
-    auto&& a0 = Pd_ground ;
-    auto&& a1 = Pd_rbs_l1 ;
+    auto&& a0 = coord.Pd_ground ;
+    auto&& a1 = coord.Pd_rbs_l1 ;
     auto&& a2 = Mbar_ground_jcs_a.col(0) ;
     auto&& a3 = P_ground ;
     auto&& a4 = A(a3).transpose() ;
     auto&& a5 = Mbar_rbs_l1_jcs_a.col(2) ;
     auto&& a6 = B(a1, a5) ;
     auto&& a7 = a5.transpose() ;
-    auto&& a8 = P_rbs_l1 ;
+    auto&& a8 = coord.P_rbs_l1 ;
     auto&& a9 = A(a8).transpose() ;
     auto&& a10 = a0.transpose() ;
     auto&& a11 = B(a8, a5) ;
@@ -369,12 +338,12 @@ void Topology::eval_acc_eq()
     auto&& a13 = Mbar_rbs_l1_jcs_a.col(0) ;
     auto&& a14 = Mbar_ground_jcs_a.col(1) ;
     auto&& a15 = Mbar_ground_jcs_a.col(0) ;
-    auto&& a16 = Pd_rbs_l2 ;
-    auto&& a17 = Pd_rbs_l3 ;
+    auto&& a16 = coord.Pd_rbs_l2 ;
+    auto&& a17 = coord.Pd_rbs_l3 ;
     auto&& a18 = Mbar_rbs_l2_jcs_c.col(0) ;
-    auto&& a19 = P_rbs_l2 ;
+    auto&& a19 = coord.P_rbs_l2 ;
     auto&& a20 = Mbar_rbs_l3_jcs_c.col(0) ;
-    auto&& a21 = P_rbs_l3 ;
+    auto&& a21 = coord.P_rbs_l3 ;
     auto&& a22 = A(a21).transpose() ;
     auto&& a23 = a16.transpose() ;
     auto&& a24 = Mbar_ground_jcs_d.col(2) ;
@@ -405,15 +374,12 @@ void Topology::eval_acc_eq()
 
 void Topology::eval_jac_eq()
 {
-    auto& config = this-> config;
-    auto& t = this-> t;
-
     auto&& j0 = Eigen::MatrixXd::Identity(3, 3) ;
     auto&& j1 = P_ground ;
     auto&& j2 = Eigen::MatrixXd::Zero(1, 3) ;
     auto&& j3 = Mbar_rbs_l1_jcs_a.col(2) ;
     auto&& j4 = j3.transpose() ;
-    auto&& j5 = P_rbs_l1 ;
+    auto&& j5 = coord.P_rbs_l1 ;
     auto&& j6 = A(j5).transpose() ;
     auto&& j7 = Mbar_ground_jcs_a.col(0) ;
     auto&& j8 = Mbar_ground_jcs_a.col(1) ;
@@ -423,9 +389,9 @@ void Topology::eval_jac_eq()
     auto&& j12 = Mbar_rbs_l1_jcs_a.col(0) ;
     auto&& j13 = Mbar_ground_jcs_a.col(1) ;
     auto&& j14 = Mbar_ground_jcs_a.col(0) ;
-    auto&& j15 = P_rbs_l2 ;
+    auto&& j15 = coord.P_rbs_l2 ;
     auto&& j16 = Mbar_rbs_l3_jcs_c.col(0) ;
-    auto&& j17 = P_rbs_l3 ;
+    auto&& j17 = coord.P_rbs_l3 ;
     auto&& j18 = A(j17).transpose() ;
     auto&& j19 = Mbar_rbs_l2_jcs_c.col(0) ;
     auto&& j20 = Mbar_ground_jcs_d.col(2) ;
