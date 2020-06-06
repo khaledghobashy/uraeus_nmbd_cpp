@@ -1,0 +1,155 @@
+
+#include "$file_name.hpp"
+
+// ============================================================================
+//                     Configuration Class Implementation
+// ============================================================================
+
+Configuration::Configuration()
+    :
+        ConfigInputs()
+    {}
+
+void Configuration::constructFromJSON(const std::string& fileName)
+{
+    ConfigInputs.constructFromJSON(fileName);
+    populateArguments();
+};
+
+
+void Configuration::populateArguments()
+{
+    $primary_arguments
+};
+
+
+void Configuration::set_inital_configuration()
+{
+    R_ground << 0, 0, 0 ;
+    P_ground << 1, 0, 0, 0 ;
+
+    q.resize($n);
+    q << 
+        $q_equalities;
+
+    qd.resize($n);
+    qd << 
+        $qd_equalities;
+};
+
+// ============================================================================
+//                     Coordinates Struct Constructor
+// ============================================================================
+
+Coordinates::Coordinates(Eigen::Ref<Eigen::VectorXd> _q, 
+                         Eigen::Ref<Eigen::VectorXd> _qd, 
+                         Eigen::Ref<Eigen::VectorXd> _qdd)
+    : // Initializer list initializing the needed struct memebrs.
+        q(_q), qd(_qd), qdd(_qdd)
+    {};
+
+
+// ============================================================================
+//                     Topology Class Implementation
+// ============================================================================
+
+// Topology Constructor
+// ====================
+Topology::Topology(std::string name, 
+            Eigen::Ref<Eigen::VectorXd> q, 
+            Eigen::Ref<Eigen::VectorXd> qd, 
+            Eigen::Ref<Eigen::VectorXd> qdd)
+
+    : // Initializer list initializing the needed struct memebrs.
+        prefix(name), coord(q, qd, qdd), config()
+
+{
+    pos_eq.resize(nc);
+    vel_eq.resize(nc);
+    acc_eq.resize(nc);
+    jac_eq.reserve(jac_rows.size());
+};
+
+// Topology initializer and assembler
+// ==================================
+void Topology::initialize()
+{
+    Dict_SS interface_map;
+    map_indicies();
+    assemble(indicies_map, interface_map, 0);
+    coord.q << config.q;
+    eval_constants();
+};
+
+void Topology::map_indicies()
+{
+    int i = 0;
+    for (auto& name : names) {indicies_map[prefix + name] = i; i++;};
+};
+
+
+void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset)
+{
+    set_mapping(indicies_map, interface_map);
+    rows += (rows_offset * Eigen::VectorXd::Ones(rows.size()) );
+
+    jac_rows.resize($nnz);
+    jac_rows << $jac_rows;
+    jac_rows += (rows_offset * Eigen::VectorXd::Ones(jac_rows.size()) );
+
+    jac_cols.resize($nnz);
+    jac_cols << 
+        $jac_cols;
+};
+
+
+void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
+{
+    auto& p = this-> prefix;
+
+    $indicies_map
+
+    $virtuals
+};
+
+
+void Topology::eval_constants()
+{
+    $num_constants
+                    
+    $sym_constants
+};
+
+void Topology::eval_pos_eq()
+{
+    $pos_replacements
+
+    pos_eq << 
+        $pos_expressions;
+};
+
+void Topology::eval_vel_eq()
+{
+    $vel_replacements
+
+    vel_eq << 
+        $vel_expressions;
+};
+
+void Topology::eval_acc_eq()
+{
+    $acc_replacements
+
+    acc_eq << 
+        $acc_expressions;
+};
+
+void Topology::eval_jac_eq()
+{
+    $jac_replacements
+
+    jac_eq = 
+        $jac_expressions;
+};
+
+

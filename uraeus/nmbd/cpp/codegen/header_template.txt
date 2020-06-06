@@ -1,0 +1,157 @@
+
+#pragma once
+
+// Standard Library Includes.
+#include <map>
+#include <vector>
+
+// uraeus library includes.
+#include <uraeus/numerics/euler_parameters.hpp>
+#include <uraeus/numerics/spatial_algebra.hpp>
+#include <uraeus/solvers/helpers.hpp>
+
+#include <uraeus/systems/configuration.hpp>
+
+typedef std::map<std::string, std::string> Dict_SS;
+typedef std::map<std::string, int> Dict_SI;
+
+// Declaring the Configuration Class and its numerical objects.
+// ============================================================
+class Configuration
+{
+
+public:
+    Configuration();
+
+public:
+    ConfigurationAssembler ConfigInputs;
+    void constructFromJSON(const std::string& fileName);                
+    void set_inital_configuration();
+
+private:
+    void populateArguments();
+
+public:
+    Eigen::VectorXd q;
+    Eigen::VectorXd qd;
+
+    Eigen::Vector3d R_ground {0, 0, 0};
+    Eigen::Vector4d P_ground {1, 0, 0, 0};
+
+    Eigen::Vector3d Rd_ground {0, 0, 0};
+    Eigen::Vector4d Pd_ground {0, 0, 0, 0};
+
+    $primary_arguments
+
+};
+
+// ============================================================================
+//                     Coordinates Struct Decleration
+// ============================================================================
+struct Coordinates
+{
+private:
+    Coordinates() = delete;
+
+public:
+    Coordinates(Eigen::Ref<Eigen::VectorXd> _q, 
+                Eigen::Ref<Eigen::VectorXd> _qd, 
+                Eigen::Ref<Eigen::VectorXd> _qdd);
+
+public:
+    Eigen::Ref<Eigen::VectorXd> q;
+    Eigen::Ref<Eigen::VectorXd> qd;
+    Eigen::Ref<Eigen::VectorXd> qdd;
+
+// Topology Generalized Coordinates (R and P vectors).
+public:    
+    $coordinates
+
+// Topology Generalized Velocities (dR/dt and dP/dt vectors).
+public:
+    $velocities
+
+// Topology Generalized Accelerations (dR2/dt2 and dP2/dt2 vectors).
+public:
+    $accelerations
+ };
+
+
+
+// ============================================================================
+//                     Topology Class Decleration
+// ============================================================================
+
+class Topology
+{
+
+public:
+    // Topology constants.
+    static const int n = $n;
+    static const int nc = $nc;
+    static const int nrows = $nve;
+    static const int ncols = 2 * $nodes;
+    std::vector<std::string> names $bodies_names;
+
+public:
+    // Topology Constructors.
+
+    // Deleting the default constructor to inforce initialization with the 
+    // desired vectors
+    Topology() = delete;
+
+    Topology(std::string name, 
+            Eigen::Ref<Eigen::VectorXd> q, 
+            Eigen::Ref<Eigen::VectorXd> qd, 
+            Eigen::Ref<Eigen::VectorXd> qdd);
+
+public:
+
+    // These variables are to be initialized through the class constructor 
+    // initializer list
+    std::string prefix;
+    Coordinates coord;
+    Configuration config;
+
+    // These variables are initialized with their default constructor.
+    double t = 0;
+
+    Eigen::VectorXd pos_eq;
+    Eigen::VectorXd vel_eq;
+    Eigen::VectorXd acc_eq;
+
+    Eigen::VectorXd jac_rows;
+    Eigen::VectorXd jac_cols;
+
+    std::vector<Eigen::MatrixXd> jac_eq;
+    std::vector<Eigen::MatrixXd> mas_eq;
+
+    Eigen::VectorXd rows = Eigen::VectorXd::LinSpaced(nrows, 0, nrows-1);
+
+
+    Dict_SI indicies_map;
+
+
+    void initialize();
+    void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
+    void map_indicies();
+    void assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset);
+    void eval_constants();
+
+
+    // Topology Equations Evaluators.
+    void eval_pos_eq();
+    void eval_vel_eq();
+    void eval_acc_eq();
+    void eval_jac_eq();
+
+// Topology Bodies Indicies from the network graph.                    
+public:
+    $bodies
+
+
+// Configuration Constants.
+public:    
+    $constants
+
+};

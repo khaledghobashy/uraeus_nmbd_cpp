@@ -85,7 +85,7 @@ class printer(CXX11CodePrinter):
             output = 'Eigen::Vector3d %s'%name
         
         elif is_ref:
-            output = 'const Eigen::Ref<Eigen::Vector3d> %s'%name
+            output = 'Eigen::Ref<Eigen::Vector3d> %s'%name
         
         else:
             output = '%s'%name
@@ -97,7 +97,7 @@ class printer(CXX11CodePrinter):
         if declare:
             output = 'Eigen::Vector4d %s'%name
         elif is_ref:
-            output = 'const Eigen::Ref<Eigen::Vector4d> %s'%name
+            output = 'Eigen::Ref<Eigen::Vector4d> %s'%name
         else:
             output = '%s'%name
         
@@ -114,11 +114,11 @@ class printer(CXX11CodePrinter):
         
         elif is_ref:
             if expr.shape == (3,1):
-                output = 'const Eigen::Ref<Eigen::Vector3d> %s'%(expr.name)
+                output = 'Eigen::Ref<Eigen::Vector3d> %s'%(expr.name)
             elif expr.shape == (4,1):
-                output = 'const Eigen::Ref<Eigen::Vector4d> %s'%(expr.name)
+                output = 'Eigen::Ref<Eigen::Vector4d> %s'%(expr.name)
             else:
-                output = 'const Eigen::Ref<Eigen::Matrix<double, %s, %s>> %s'%(*expr.shape, expr.name)
+                output = 'Eigen::Ref<Eigen::Matrix<double, %s, %s>> %s'%(*expr.shape, expr.name)
         
         else:
             output = super()._print_MatrixSymbol(expr, **kwargs)
