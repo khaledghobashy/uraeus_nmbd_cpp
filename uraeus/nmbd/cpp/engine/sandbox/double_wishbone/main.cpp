@@ -3,8 +3,29 @@
 
 #include "uraeus/solvers/solvers.hpp"
 
-#include "new_API/double_wishbone_direct_acting.hpp"
+#include "double_wishbone_direct_acting.hpp"
 
+#include "simulation.hpp"
+
+void test_sim()
+{
+    auto sim = Simulation();
+
+    sim.ConstructConfiguration("double_wishbone_direct_acting.json");
+
+    sim.set_UF_mcr_wheel_lock([](double t)->double{return 0;});
+    sim.set_UF_mcl_wheel_lock([](double t)->double{return 0;});
+
+    sim.set_UF_mcr_wheel_travel([](double t)->double{return 546 + 170*std::sin(t);});    
+    sim.set_UF_mcl_wheel_travel([](double t)->double{return 546 - 170*std::sin(t);});
+
+    sim.Solve(2*(22.0/7), 5e-3);
+
+    sim.SaveResults("", "pos", 0);
+    sim.SaveResults("", "vel", 1);
+    sim.SaveResults("", "acc", 2);
+
+}
 
 void test_Solver()
 {
@@ -34,7 +55,8 @@ void test_Solver()
 int main()
 {
 
-    test_Solver();
+    //test_Solver();
+    test_sim();
 
     return 0;
 }
