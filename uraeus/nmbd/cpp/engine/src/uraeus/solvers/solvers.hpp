@@ -20,6 +20,7 @@ public:
     Eigen::VectorXd q;
     Eigen::VectorXd qd;
     Eigen::VectorXd qdd;
+    Eigen::VectorXd lgr;
 
     T model;
     
@@ -30,10 +31,14 @@ public:
     std::vector<Eigen::VectorXd> pos_history;
     std::vector<Eigen::VectorXd> vel_history;
     std::vector<Eigen::VectorXd> acc_history;
+    std::vector<Eigen::VectorXd> lgr_history;
 
-    SparseBlock Jacobian;
     std::vector<int> jac_rows;
     std::vector<int> jac_cols;
+    std::vector<int> mas_cols;
+
+    SparseBlock Jacobian;
+    SparseBlock MassMatrix;
 
     Eigen::SparseLU<SparseBlock> SparseSolver;
 
@@ -50,6 +55,9 @@ public:
     Eigen::VectorXd eval_vel_eq();
     Eigen::VectorXd eval_acc_eq();
     void eval_jac_eq();
+    void eval_mas_eq();
+
+    void solve_lgr_multipliers();
 
     void solve_constraints(Eigen::VectorXd& guess);
     void Solve();
@@ -72,12 +80,16 @@ Solver<T>::Solver()
         q(T::n),
         qd(T::n),
         qdd(T::n),
+        lgr(T::nc),
         model("", q, qd, qdd)
 {
     Jacobian.resize(model.nc, model.n);
+    MassMatrix.resize(model.n, model.n);
+
     results_names[0] = "Positions";
     results_names[1] = "Velocities";
     results_names[2] = "Accelerations";
+    results_names[3] = "LagrnageMultipliers";
 };
 
 
@@ -112,8 +124,13 @@ void Solver<T>::initialize()
             jac_rows.push_back(int(model.jac_rows(i)));
             jac_cols.push_back(int(model.jac_cols(i)));        
         }
-};
+    
+    for (size_t i = 0; i < model.mas_cols.size(); i++)
+        {
+            mas_cols.push_back(int(model.mas_cols(i)));
+        }
 
+};
 
 
 template<class T>
@@ -143,9 +160,25 @@ void Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();    
     SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
-    //return Jacobian;
 };
 
+template<class T>
+void Solver<T>::eval_mas_eq()
+{   
+    model.eval_mas_eq();    
+    SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
+};
+
+
+template<class T>
+void Solver<T>::solve_lgr_multipliers()
+{
+    eval_mas_eq();
+    auto&& inertia_forces = MassMatrix * qdd;
+    lgr << SparseSolver.solve(-inertia_forces);
+    //std::cout << inertia_forces.transpose() << "\n";
+    //std::cout << lgr.transpose() << "\n";
+};
 
 template<class T>
 void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
@@ -209,7 +242,7 @@ void Solver<T>::Solve()
     double t = 0;
     auto samples = time_array.size();
     
-    std::cout << "Setting Initial Position History" << "\n";
+    //std::cout << "Setting Initial Position History" << "\n";
     pos_history.emplace_back(q);
 
     Eigen::VectorXd guess(model.n);
@@ -250,15 +283,19 @@ void Solver<T>::Solve()
 
         qd  << SparseSolver.solve(-eval_vel_eq());
         qdd << SparseSolver.solve(-eval_acc_eq());
+
+        solve_lgr_multipliers();
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);
         acc_history.emplace_back(qdd);
+        lgr_history.emplace_back(lgr);
     };
 
     results[0] = &pos_history;
     results[1] = &vel_history;
     results[2] = &acc_history;
+    results[3] = &lgr_history;
 
     std::cout << "\n";
     std::cout << "Finished Solver ..." << "\n";
