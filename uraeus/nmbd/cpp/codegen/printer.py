@@ -23,7 +23,6 @@ class printer(CXX11CodePrinter):
     def _print_AbstractMatrix(self, expr):
         args = ', '.join([self._print(i) for i in expr.args])
         name = expr.__class__.__name__
-        name = (name.lower() if len(name)>1 else name)
         return '%s(%s)'%(name, args)
     
     def _print_Simple_geometry(self, expr):
@@ -38,11 +37,22 @@ class printer(CXX11CodePrinter):
         expr_lowerd = expr.__class__.__name__.lower()
         return '%s%s'%(expr_lowerd, (self._print(expr.args)))
     
+    def _print_Triad(self, expr):
+        args = ', '.join([self._print(i) for i in expr.args])
+        name = expr.__class__.__name__.lower()
+        return '%s(%s)'%(name, args)
+
     def _print_Equal_to(self, expr):
         return '%s'%self._print(expr.args[0])
     
     def _print_Oriented(self, expr):
         name = 'oriented'
+        args = ', '.join([self._print(i) for i in expr.args])
+        output = '%s({%s})'%(name, args)
+        return output
+
+    def _print_Mirrored(self, expr):
+        name = 'mirrored'
         args = ', '.join([self._print(i) for i in expr.args])
         output = '%s({%s})'%(name, args)
         return output
@@ -141,7 +151,16 @@ class printer(CXX11CodePrinter):
         return output
     
     def _print_Mul(self,expr):
-        return ' * '.join([self._print(i) for i in expr.args])
+        text = ' * '.join([self._print(i) for i in expr.args])
+        return '(%s)'%text
+
+    def _print_Add(self,expr):
+        text = ' + '.join([self._print(i) for i in expr.args])
+        return '(%s)'%text
+    
+    def _print_MatAdd(self, expr):
+        text = ' + '.join([self._print(i) for i in expr.args])
+        return '(%s)'%text
     
     def _print_MatMul(self,expr):
         scalars = []
@@ -167,11 +186,15 @@ class printer(CXX11CodePrinter):
         
         if len(scalars)==0:
             s = ''
+        elif len(scalars) == 1:
+            s = '%s * '%scalars[0]
         else:
-            s = ' * '.join(scalars)+' * '
+            text = ' * '.join(scalars) + ' * '
+            s = text
             
         if len(vectors)>1:
-            v = '%s'%' * '.join(vectors)
+            text =  ' * '.join(vectors)
+            v = text
         else:
             v = str(vectors[0])
             
@@ -180,7 +203,8 @@ class printer(CXX11CodePrinter):
         else:
             e = ' * '.join(express)+' * '
         #print('end \n')
-        return e + s + v 
+        expr_text = '(%s)'%(s + e + v)
+        return expr_text
         
     
     def _print_Identity(self, expr):
@@ -220,12 +244,7 @@ class printer(CXX11CodePrinter):
             
         _expr = '%s %s %s ;'%(lhs_name, assign_operator, rhs_expr)
         return _expr
-    
-    def _print_MatAdd(self, expr):
-        nested_operations = [self._print(i) for i in expr.args]
-        value = ' + '.join(nested_operations)
-        return '(%s)'%value
-    
+        
     
     def _print_MatrixSlice(self, expr):
         m, row_slice, col_slice = expr.args
@@ -257,12 +276,44 @@ class printer(CXX11CodePrinter):
         func = expr.__class__.__name__
         args = ','.join([self._print(arg) for arg in expr.args])
         return '%s(%s)'%(func, args)
+
+    def _print_MatrixElement(self, expr):
+        arg = expr.args[0]
+        ind = expr.args[1:]
+        if arg.shape == (1, 1):
+            arg_text = self._print(arg)
+        else:
+            arg_text = super()._print_MatrixElement(expr)
+        return arg_text
+    
+    def _print_MatPow(self, expr):
+        arg, pow = expr.args
+        if arg.shape == (1, 1):
+            arg_text = self._print(arg)
+            text = 'pow(%s, %s)'%(arg_text, pow)
+        else:
+            text = super()._print_MatPow(expr)
+        return text
         
     def _print_transpose(self, expr):
-        return '%s.transpose()'%(*[self._print(i) for i in expr.args],)
+        arg = expr.args[0]
+        if isinstance(arg, sm.Symbol):
+            text = self._print(arg)
+        elif isinstance(arg, sm.MatrixSymbol) and arg.shape == (1, 1):
+            text = self._print(arg)
+        else:
+            text = '%s.transpose()'%(*[self._print(i) for i in expr.args],)
+        return text
     
     def _print_Transpose(self, expr):
-        return '%s.transpose()'%(*[self._print(i) for i in expr.args],)
+        arg = expr.args[0]
+        if isinstance(arg, sm.Symbol):
+            text = self._print(arg)
+        elif isinstance(arg, sm.MatrixSymbol) and arg.shape == (1, 1):
+            text = self._print(arg)
+        else:
+            text = '%s.transpose()'%(*[self._print(i) for i in expr.args],)
+        return text
 
     def _print_Derivative(self, expr):
         func = expr.args[0].__class__.__name__
