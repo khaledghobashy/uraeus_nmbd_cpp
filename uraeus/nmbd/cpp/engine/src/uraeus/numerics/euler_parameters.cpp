@@ -51,31 +51,48 @@ Eigen::Vector4d A2P(Eigen::Matrix3d& dcm)
 };
 
 
+Eigen::Matrix<double, 3, 4> G(const Eigen::Vector4d& P)
+{
+    const double& e0 = P[0];
+    const double& e1 = P[1];
+    const double& e2 = P[2];
+    const double& e3 = P[3];
+
+    Eigen::Matrix<double, 3, 4> m;
+    m <<
+    -e1, e0, e3,-e2,
+    -e2,-e3, e0, e1,
+    -e3, e2,-e1, e0;
+
+    return m;
+};
+
+
+Eigen::Matrix<double, 3, 4> E(const Eigen::Vector4d& P)
+{
+    const double& e0 = P[0];
+    const double& e1 = P[1];
+    const double& e2 = P[2];
+    const double& e3 = P[3];
+
+    Eigen::Matrix<double, 3, 4> m;
+    m <<
+    -e1, e0,-e3, e2,
+    -e2, e3, e0,-e1,
+    -e3,-e2, e1, e0;
+
+    return m;
+};
+
 
 Eigen::Matrix3d A(const Eigen::Vector4d& P)
 {
-    double e0 = P(0,0);
-    double e1 = P(1,0);
-    double e2 = P(2,0);
-    double e3 = P(3,0);
+    const double& e0 = P[0];
+    const double& e1 = P[1];
+    const double& e2 = P[2];
+    const double& e3 = P[3];
 
     Eigen::Matrix3d A;
-
-    /**
-     *  
-    result[0,0] = (e0**2+e1**2-e2**2-e3**2)
-    result[0,1] = 2*((e1*e2)-(e0*e3))              
-    result[0,2] = 2*((e1*e3)+(e0*e2))
-    
-    result[1,0] = 2*((e1*e2)+(e0*e3))
-    result[1,1] = e0**2-e1**2+e2**2-e3**2
-    result[1,2] = 2*((e2*e3)-(e0*e1))
-    
-    result[2,0] = 2*((e1*e3)-(e0*e2))
-    result[2,1] = 2*((e2*e3)+(e0*e1))
-    result[2,2] = e0**2-e1**2-e2**2+e3**2
-     * 
-     */
 
     A(0,0) = pow(e0,2) + pow(e1,2) - pow(e2,2) - pow(e3,2);
     A(0,1) = 2*((e1*e2) - (e0*e3));
@@ -97,14 +114,14 @@ Eigen::Matrix<double, 3, 4> B(const Eigen::Vector4d& P, const Eigen::Vector3d& u
 {
     Eigen::Matrix<double, 3, 4> mat;
 
-    double e0 = P(0,0);
-    double e1 = P(1,0);
-    double e2 = P(2,0);
-    double e3 = P(3,0);
+    const double& e0 = P[0];
+    const double& e1 = P[1];
+    const double& e2 = P[2];
+    const double& e3 = P[3];
     
-    double ux = u(0,0);
-    double uy = u(1,0);
-    double uz = u(2,0);
+    const double& ux = u[0];
+    const double& uy = u[1];
+    const double& uz = u[2];
     
     mat(0,0) = 2*e0*ux + 2*e2*uz - 2*e3*uy ;
     mat(0,1) = 2*e1*ux + 2*e2*uy + 2*e3*uz ;
