@@ -119,18 +119,16 @@ public:
     Eigen::VectorXd pos_eq;
     Eigen::VectorXd vel_eq;
     Eigen::VectorXd acc_eq;
+    Eigen::VectorXd frc_eq;
 
     Eigen::VectorXd jac_rows;
     Eigen::VectorXd jac_cols;
+    Eigen::VectorXd mas_cols = Eigen::VectorXd::LinSpaced(ncols, 0, ncols-1);
 
     std::vector<Eigen::MatrixXd> jac_eq;
     std::vector<Eigen::MatrixXd> mas_eq;
 
-    Eigen::VectorXd rows = Eigen::VectorXd::LinSpaced(nrows, 0, nrows-1);
-
-
     Dict_SI indicies_map;
-
 
     void initialize();
     void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
@@ -143,7 +141,9 @@ public:
     void eval_pos_eq();
     void eval_vel_eq();
     void eval_acc_eq();
+    void eval_frc_eq();
     void eval_jac_eq();
+    void eval_mas_eq();
 
 // Topology Bodies Indicies from the network graph.                    
 public:

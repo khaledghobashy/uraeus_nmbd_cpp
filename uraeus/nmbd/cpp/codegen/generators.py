@@ -82,208 +82,10 @@ class abstract_generator(object):
 
 class template_codegen(abstract_generator):
     
-    def write_header_class(self):
-        text = '''
-                #pragma once
-
-                // Standard Library Includes.
-                #include <map>
-                #include <vector>
-                
-                // uraeus library includes.
-                #include <uraeus/numerics/euler_parameters.hpp>
-                #include <uraeus/numerics/spatial_algebra.hpp>
-                #include <uraeus/solvers/helpers.hpp>
-
-                #include <uraeus/systems/configuration.hpp>
-
-                typedef std::map<std::string, std::string> Dict_SS;
-                typedef std::map<std::string, int> Dict_SI;
-                
-                // Declaring the Configuration Class and its numerical objects.
-                // ============================================================
-                class Configuration
-                {{
-
-                public:
-                    Configuration();
-                
-                public:
-                    ConfigurationAssembler ConfigInputs;
-                    void constructFromJSON(const std::string& fileName);                
-                    void set_inital_configuration();
-                
-                private:
-                    void populateArguments();
-
-                public:
-                    Eigen::VectorXd q;
-                    Eigen::VectorXd qd;
-
-                    Eigen::Vector3d R_ground {{0, 0, 0}};
-                    Eigen::Vector4d P_ground {{1, 0, 0, 0}};
-                    
-                    Eigen::Vector3d Rd_ground {{0, 0, 0}};
-                    Eigen::Vector4d Pd_ground {{0, 0, 0, 0}};
-
-                    {primary_arguments}
-                    
-                }};
-
-
-                // ============================================================================
-                //                     Coordinates Struct Decleration
-                // ============================================================================
-                struct Coordinates
-                {
-                private:
-                    Coordinates() = delete;
-
-                public:
-                    Coordinates(Eigen::Ref<Eigen::VectorXd> q, 
-                                Eigen::Ref<Eigen::VectorXd> qd, 
-                                Eigen::Ref<Eigen::VectorXd> qdd);
-
-                public:
-                    Eigen::Ref<Eigen::VectorXd> m_q;
-                    Eigen::Ref<Eigen::VectorXd> m_qd;
-                    Eigen::Ref<Eigen::VectorXd> m_qdd;
-                
-                // Topology Generalized Coordinates (R and P vectors).
-                public:
-                    {coordinates}
-                
-                // Topology Generalized Velocities (dR/dt and dP/dt vectors).
-                public:
-                    {velocities}
-                
-                // Topology Generalized Accelerations (dR2/dt2 and dP2/dt2 vectors).
-                public:
-                    {accelerations}
-
-                
-                // ============================================================================
-                //                     Topology Class Decleration
-                // ============================================================================
-                
-                class Topology
-                {{
-                
-                public:
-                    // Topology constants.
-                    static const int n = {n};
-                    static const int nc = {nc};
-                    static const int nrows = {nve};
-                    static const int ncols = 2*{nodes};
-                    std::vector<std::string> names {bodies_names};
-                    
-
-                    // Topology Constructors.
-
-                    // Deleting the default constructor to inforce initialization with the 
-                    // desired vectors
-                    Topology() = delete;
-
-                    Topology(std::string name, 
-                            Eigen::Ref<Eigen::VectorXd> q, 
-                            Eigen::Ref<Eigen::VectorXd> qd, 
-                            Eigen::Ref<Eigen::VectorXd> qdd);
-
-                public:
-
-                    // These variables are to be initialized through the class constructor 
-                    // initializer list
-                    std::string prefix;
-                    Coordinates coord;
-                    Configuration config;
-
-                    // These variables are initialized with their default constructor.
-                    double t = 0;
-                                        
-                    Eigen::VectorXd pos_eq;
-                    Eigen::VectorXd vel_eq;
-                    Eigen::VectorXd acc_eq;
-
-                    Eigen::VectorXd jac_rows;
-                    Eigen::VectorXd jac_cols;
-                    
-                    std::vector<Eigen::MatrixXd> jac_eq;
-                    std::vector<Eigen::MatrixXd> mas_eq;
-                    
-                    Eigen::VectorXd rows = Eigen::VectorXd::LinSpaced(nrows, 0, nrows-1);
-                    
-                    Dict_SI indicies_map;
-                    
-                    // Topology initializing functions.
-                    void initialize();
-                    void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
-                    void map_indicies();
-                    void assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset);
-                    void eval_constants();
-                    
-                    // Topology Equations Evaluators.
-                    void eval_pos_eq();
-                    void eval_vel_eq();
-                    void eval_acc_eq();
-                    void eval_jac_eq();
-                
-                // Topology Bodies Indicies from the network graph.                    
-                public:
-                    {bodies}
-                                
-                // Configuration Constants.
-                public:    
-                    {constants}
-                
-                }};
-                '''
-        text = text.expandtabs()
-        text = textwrap.dedent(text)
-        
-        p = self.printer
-        
-        primary_aruments = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
-                                      set(self.mbs.arguments_symbols)])
-        primary_aruments = textwrap.indent(primary_aruments, 4*' ').lstrip()
-        
-        bodies_indices = '\n'.join(['int %s ;'%i for i in self.bodies])
-        bodies_indices = textwrap.indent(bodies_indices, 4*' ').lstrip()
-
-        bodies_names = ', '.join(['%s'%i for i in self.bodies])
-        bodies_names = textwrap.indent('{%s}'%bodies_names, 4*' ').lstrip()
-        
-        coordinates = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
-                                 self.gen_coordinates_exp[2:]])
-        coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
-
-        velocities = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in 
-                                self.gen_velocities_exp])
-        velocities = textwrap.indent(velocities, 4*' ').lstrip()
-
-        accelerations = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
-                                   self.gen_accelerations_exp])
-        accelerations = textwrap.indent(accelerations, 4*' ').lstrip()
-
-        constants = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
-                               set(self.mbs.constants_symbols)])
-        constants = textwrap.indent(constants, 4*' ').lstrip()
-        
-        text = text.format(primary_arguments = primary_aruments,
-                           bodies = bodies_indices,
-                           bodies_names = bodies_names,
-                           coordinates = coordinates,
-                           velocities = velocities,
-                           accelerations = accelerations,
-                           constants = constants,
-                           n = self.mbs.n,
-                           nc = self.mbs.nc,
-                           nve = self.mbs.nve,
-                           nodes = len(self.bodies))        
-        return text
     
     def write_header_file(self, dir_path=''):
         file_path = os.path.join(dir_path, self.name)
-        system_class = self.write_header_content()
+        system_class = self._write_header_content()
         with open('%s.hpp'%file_path, 'w') as file:
             file.write(system_class)
         print('File full path : %s.hpp'%file_path)
@@ -291,13 +93,13 @@ class template_codegen(abstract_generator):
     
     def write_source_file(self, dir_path=''):
         file_path = os.path.join(dir_path, self.name)
-        system_class = self.write_source_content()
+        system_class = self._write_source_content()
         with open('%s.cpp'%file_path, 'w') as file:
             file.write(system_class)
         print('File full path : %s.cpp'%file_path)
 
     
-    def write_header_content(self):
+    def _write_header_content(self):
         printer = p = self.printer
         indent = ''
 
@@ -349,7 +151,7 @@ class template_codegen(abstract_generator):
 
 
 
-    def write_source_content(self):
+    def _write_source_content(self):
 
         printer = self.printer
         indent = ''
@@ -370,6 +172,8 @@ class template_codegen(abstract_generator):
         vel_replacements, vel_expressions = self.get_vel_equations()
         acc_replacements, acc_expressions = self.get_acc_equations()
         jac_replacements, jac_expressions = self.get_jac_equations()
+        mas_replacements, mas_expressions = self.get_mas_equations()
+        frc_replacements, frc_expressions = '', '' #self.get_frc_equations()
 
         template_text = template_text.safe_substitute(
             file_name = file_name,
@@ -391,7 +195,11 @@ class template_codegen(abstract_generator):
             acc_replacements = acc_replacements,
             acc_expressions = acc_expressions,
             jac_replacements = jac_replacements,
-            jac_expressions = jac_expressions)
+            jac_expressions = jac_expressions,
+            mas_replacements = mas_replacements,
+            mas_expressions = mas_expressions,
+            frc_replacements = frc_replacements,
+            frc_expressions = frc_expressions)
 
         return template_text
     
@@ -405,8 +213,14 @@ class template_codegen(abstract_generator):
     def get_acc_equations(self):
         return self.get_X_equations("acc")
 
+    def get_frc_equations(self):
+        return self.get_X_equations("frc")
+
     def get_jac_equations(self):
         return self.get_X_equations("jac", std_vector=True)
+
+    def get_mas_equations(self):
+        return self.get_X_equations("mass", std_vector=True)
 
     def get_X_equations(self, eq_initial, std_vector=False):
 
@@ -416,6 +230,7 @@ class template_codegen(abstract_generator):
         # The expected format is two lists [replacements] and [expressions].
         replacements_list = getattr(self.mbs, '%s_rep'%eq_initial)
         expressions_list  = getattr(self.mbs, '%s_exp'%eq_initial)
+        
         # Extracting the vector/matrix from the returned expressions list.
         vector_expr = expressions_list[0]
         # Extracting the Non-Zero values of the vector/matrix.

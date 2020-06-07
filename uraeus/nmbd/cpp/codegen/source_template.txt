@@ -67,7 +67,13 @@ Topology::Topology(std::string name,
     pos_eq.resize(nc);
     vel_eq.resize(nc);
     acc_eq.resize(nc);
-    jac_eq.reserve(jac_rows.size());
+    frc_eq.resize(n);
+
+    jac_rows.resize($nnz);
+    jac_cols.resize($nnz);
+    jac_eq.reserve($nnz);
+
+    mas_eq.reserve(2*ncols);
 };
 
 // Topology initializer and assembler
@@ -91,13 +97,10 @@ void Topology::map_indicies()
 void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset)
 {
     set_mapping(indicies_map, interface_map);
-    rows += (rows_offset * Eigen::VectorXd::Ones(rows.size()) );
 
-    jac_rows.resize($nnz);
     jac_rows << $jac_rows;
     jac_rows += (rows_offset * Eigen::VectorXd::Ones(jac_rows.size()) );
 
-    jac_cols.resize($nnz);
     jac_cols << 
         $jac_cols;
 };
@@ -144,6 +147,14 @@ void Topology::eval_acc_eq()
         $acc_expressions;
 };
 
+void Topology::eval_frc_eq()
+{
+    //$frc_replacements
+
+    //frc_eq << 
+        //$frc_expressions;
+};
+
 void Topology::eval_jac_eq()
 {
     $jac_replacements
@@ -152,4 +163,10 @@ void Topology::eval_jac_eq()
         $jac_expressions;
 };
 
+void Topology::eval_mas_eq()
+{
+    $mas_replacements
 
+    mas_eq = 
+        $mas_expressions;
+};
