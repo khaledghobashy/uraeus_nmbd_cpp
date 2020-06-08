@@ -41,6 +41,12 @@ class printer(CXX11CodePrinter):
         args = ', '.join([self._print(i) for i in expr.args])
         name = expr.__class__.__name__.lower()
         return '%s(%s)'%(name, args)
+    
+    def _print_Skew(self, expr):
+        args = ', '.join([self._print(i) for i in expr.args])
+        name = expr.__class__.__name__.lower()
+        return '%s(%s)'%(name, args)
+
 
     def _print_Equal_to(self, expr):
         return '%s'%self._print(expr.args[0])
@@ -67,6 +73,8 @@ class printer(CXX11CodePrinter):
         name = expr._raw_name
         if declare:
             output = 'Eigen::Matrix<double, %s, %s> %s'%(*expr.shape, name)
+        elif is_ref:
+            output = 'Eigen::Ref<Eigen::Matrix<double, %s, %s>> %s'%(*expr.shape, name)
         else:
             output = '%s'%name
         return output
@@ -266,11 +274,12 @@ class printer(CXX11CodePrinter):
         return self._print_MutableDenseMatrix(expr)
     
     def _print_UndefinedFunction(self, expr, declare=False):
+        output_type = 'Eigen::Vector3d' if expr.is_Vector else 'double'
         if declare:
-            output = 'std::function<double(double)> %s'%expr
+            text = 'std::function<%s(double)> %s'%(output_type, expr)
         else:
-            output = '%s'%expr
-        return output
+            text = '%s'%expr
+        return text
     
     def _print_Function(self, expr):
         func = expr.__class__.__name__

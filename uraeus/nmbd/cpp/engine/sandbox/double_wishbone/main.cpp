@@ -7,6 +7,18 @@
 
 #include "simulation.hpp"
 
+
+inline double springForce(double x)
+{
+    if (x>0){return 550*1e6*x;} else {return 0;};
+};
+
+inline double damperForce(double v)
+{
+    return 40*1e6 * v;
+};
+
+
 void test_sim()
 {
     auto sim = Simulation();
@@ -18,6 +30,12 @@ void test_sim()
 
     sim.set_UF_mcr_wheel_travel([](double t)->double{return 546 + 170*std::sin(t);});    
     sim.set_UF_mcl_wheel_travel([](double t)->double{return 546 - 170*std::sin(t);});
+
+    sim.set_UF_far_strut_Fs(springForce);
+    sim.set_UF_fal_strut_Fs(springForce);
+
+    sim.set_UF_far_strut_Fd(damperForce);
+    sim.set_UF_fal_strut_Fd(damperForce);
 
     sim.Solve(2*(22.0/7), 5e-3);
 

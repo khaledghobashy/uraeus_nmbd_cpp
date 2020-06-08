@@ -511,3 +511,8 @@ void ConfigurationAssembler::get(const std::string& name, std::function<double(d
 {
     
 };
+
+void ConfigurationAssembler::get(const std::string& name, std::function<Eigen::Vector3d(double)>& value)
+{
+    
+};

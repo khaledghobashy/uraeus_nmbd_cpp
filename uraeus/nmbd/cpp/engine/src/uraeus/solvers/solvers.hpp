@@ -54,6 +54,8 @@ public:
     Eigen::VectorXd eval_pos_eq();
     Eigen::VectorXd eval_vel_eq();
     Eigen::VectorXd eval_acc_eq();
+    Eigen::VectorXd eval_frc_eq();
+
     void eval_jac_eq();
     void eval_mas_eq();
 
@@ -81,7 +83,7 @@ Solver<T>::Solver()
         qd(T::n),
         qdd(T::n),
         lgr(T::nc),
-        model("", q, qd, qdd)
+        model("", q, qd, qdd, lgr)
 {
     Jacobian.resize(model.nc, model.n);
     MassMatrix.resize(model.n, model.n);
@@ -154,6 +156,12 @@ Eigen::VectorXd Solver<T>::eval_acc_eq()
     return model.acc_eq;
 };
 
+template<class T>
+Eigen::VectorXd Solver<T>::eval_frc_eq()
+{   
+    model.eval_frc_eq();
+    return model.frc_eq;
+};
 
 template<class T>
 void Solver<T>::eval_jac_eq()
@@ -174,8 +182,8 @@ template<class T>
 void Solver<T>::solve_lgr_multipliers()
 {
     eval_mas_eq();
-    auto&& inertia_forces = MassMatrix * qdd;
-    lgr << SparseSolver.solve(-inertia_forces);
+    auto&& rhs = eval_frc_eq() - (MassMatrix * qdd);
+    lgr << SparseSolver.solve(rhs);
     //std::cout << inertia_forces.transpose() << "\n";
     //std::cout << lgr.transpose() << "\n";
 };

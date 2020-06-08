@@ -1,5 +1,5 @@
 
-add_library(fourbar_lib new_API/spatial_fourbar.cpp new_API/spatial_fourbar.hpp)
+add_library(fourbar_lib spatial_fourbar.cpp spatial_fourbar.hpp)
 
 target_include_directories(fourbar_lib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 

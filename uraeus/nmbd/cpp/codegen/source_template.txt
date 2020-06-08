@@ -43,9 +43,10 @@ void Configuration::set_inital_configuration()
 
 Coordinates::Coordinates(Eigen::Ref<Eigen::VectorXd> _q, 
                          Eigen::Ref<Eigen::VectorXd> _qd, 
-                         Eigen::Ref<Eigen::VectorXd> _qdd)
+                         Eigen::Ref<Eigen::VectorXd> _qdd,
+                         Eigen::Ref<Eigen::VectorXd> _lgr)
     : // Initializer list initializing the needed struct memebrs.
-        q(_q), qd(_qd), qdd(_qdd)
+        q(_q), qd(_qd), qdd(_qdd), lgr(_lgr)
     {};
 
 
@@ -58,10 +59,11 @@ Coordinates::Coordinates(Eigen::Ref<Eigen::VectorXd> _q,
 Topology::Topology(std::string name, 
             Eigen::Ref<Eigen::VectorXd> q, 
             Eigen::Ref<Eigen::VectorXd> qd, 
-            Eigen::Ref<Eigen::VectorXd> qdd)
+            Eigen::Ref<Eigen::VectorXd> qdd,
+            Eigen::Ref<Eigen::VectorXd> lgr)
 
     : // Initializer list initializing the needed struct memebrs.
-        prefix(name), coord(q, qd, qdd), config()
+        prefix(name), coord(q, qd, qdd, lgr), config()
 
 {
     pos_eq.resize(nc);
@@ -149,10 +151,10 @@ void Topology::eval_acc_eq()
 
 void Topology::eval_frc_eq()
 {
-    //$frc_replacements
+    $frc_replacements
 
-    //frc_eq << 
-        //$frc_expressions;
+    frc_eq << 
+        $frc_expressions;
 };
 
 void Topology::eval_jac_eq()
@@ -169,4 +171,12 @@ void Topology::eval_mas_eq()
 
     mas_eq = 
         $mas_expressions;
+};
+
+
+void Topology::eval_reactions()
+{
+    //$rct_expressions
+
+    //$rct_return;
 };

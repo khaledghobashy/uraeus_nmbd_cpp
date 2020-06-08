@@ -56,12 +56,14 @@ private:
 public:
     Coordinates(Eigen::Ref<Eigen::VectorXd> _q, 
                 Eigen::Ref<Eigen::VectorXd> _qd, 
-                Eigen::Ref<Eigen::VectorXd> _qdd);
+                Eigen::Ref<Eigen::VectorXd> _qdd,
+                Eigen::Ref<Eigen::VectorXd> _lgr);
 
 public:
     Eigen::Ref<Eigen::VectorXd> q;
     Eigen::Ref<Eigen::VectorXd> qd;
     Eigen::Ref<Eigen::VectorXd> qdd;
+    Eigen::Ref<Eigen::VectorXd> lgr;
 
 // Topology Generalized Coordinates (R and P vectors).
 public:    
@@ -74,6 +76,11 @@ public:
 // Topology Generalized Accelerations (dR2/dt2 and dP2/dt2 vectors).
 public:
     $accelerations
+
+// Topology Lagrange Multipliers.
+public:
+    $lagrange
+
  };
 
 
@@ -103,7 +110,8 @@ public:
     Topology(std::string name, 
             Eigen::Ref<Eigen::VectorXd> q, 
             Eigen::Ref<Eigen::VectorXd> qd, 
-            Eigen::Ref<Eigen::VectorXd> qdd);
+            Eigen::Ref<Eigen::VectorXd> qdd,
+            Eigen::Ref<Eigen::VectorXd> lgr);
 
 public:
 
@@ -144,6 +152,7 @@ public:
     void eval_frc_eq();
     void eval_jac_eq();
     void eval_mas_eq();
+    void eval_reactions();
 
 // Topology Bodies Indicies from the network graph.                    
 public:

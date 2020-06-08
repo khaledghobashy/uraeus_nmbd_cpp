@@ -130,22 +130,28 @@ class template_codegen(abstract_generator):
                                    self.gen_accelerations_exp])
         accelerations = textwrap.indent(accelerations, 4*' ').lstrip()
 
+        lagrange = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
+                                   self.lagrange_multipliers_exp])
+        lagrange = textwrap.indent(lagrange, 4*' ').lstrip()
+        lagrange = lagrange.replace('Lambda', 'lgr')
+
         constants = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
                                set(self.mbs.constants_symbols)])
         constants = textwrap.indent(constants, 4*' ').lstrip()
 
         template_text = template_text.safe_substitute(
+            n = self.mbs.n,
+            nc = self.mbs.nc,
+            nve = self.mbs.nve,
+            nodes = len(self.bodies),
             primary_arguments = primary_aruments,
             bodies = bodies_indices,
             bodies_names = bodies_names,
             coordinates = coordinates,
             velocities = velocities,
             accelerations = accelerations,
-            constants = constants,
-            n = self.mbs.n,
-            nc = self.mbs.nc,
-            nve = self.mbs.nve,
-            nodes = len(self.bodies))
+            lagrange = lagrange,
+            constants = constants)
 
         return template_text
 
@@ -173,7 +179,9 @@ class template_codegen(abstract_generator):
         acc_replacements, acc_expressions = self.get_acc_equations()
         jac_replacements, jac_expressions = self.get_jac_equations()
         mas_replacements, mas_expressions = self.get_mas_equations()
-        frc_replacements, frc_expressions = '', '' #self.get_frc_equations()
+        frc_replacements, frc_expressions = self.get_frc_equations()
+
+        rct_expressions, rct_return = self.get_reactions_equations()
 
         template_text = template_text.safe_substitute(
             file_name = file_name,
@@ -199,7 +207,9 @@ class template_codegen(abstract_generator):
             mas_replacements = mas_replacements,
             mas_expressions = mas_expressions,
             frc_replacements = frc_replacements,
-            frc_expressions = frc_expressions)
+            frc_expressions = frc_expressions,
+            rct_expressions = 'rct_expressions',
+            rct_return = 'rct_return')
 
         return template_text
     
@@ -346,6 +356,38 @@ class template_codegen(abstract_generator):
         sym_constants_text = textwrap.indent(sym_constants_text, 4*' ').lstrip()
 
         return num_constants_text, sym_constants_text
+    
+    def get_reactions_equations(self):
+        
+        indent = 4*' '
+        p = self.printer
+        
+        equations = self.mbs.reactions_equalities
+        #print(equations[0].rhs.args[1].__class__.__name__)
+        #print(equations[0].rhs.shape)
+        #print('\n', p._print(equations[0].rhs), '\n')
+        equations_text = '\n'.join([p._print(expr) for expr in equations])
+        
+        self_pattern = itertools.chain(self.runtime_symbols,
+                                       self.constants_symbols,
+                                       self.joint_reactions_sym,
+                                       self.lagrange_multipliers_sym)
+        self_pattern = '|'.join(self_pattern)
+        self_inserter = self._insert_string('')
+        equations_text = re.sub(self_pattern,self_inserter,equations_text)
+        
+        config_pattern = set(self.primary_arguments) - set(self.runtime_symbols)
+        config_pattern = '|'.join([r'%s'%i for i in config_pattern])
+        config_inserter = self._insert_string('config.')
+        equations_text = re.sub(config_pattern,config_inserter,equations_text)
+                
+        equations_text = textwrap.indent(equations_text,indent).lstrip() 
+        
+        reactions = ',\n'.join(['%r : self.%s'%(i,i) for i in self.joint_reactions_sym])
+        reactions = textwrap.indent(reactions, 5*indent).lstrip()
+        reactions = '{%s}'%reactions
+        
+        return equations_text, reactions
 
 
 ###############################################################################

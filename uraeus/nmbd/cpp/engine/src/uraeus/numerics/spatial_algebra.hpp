@@ -12,7 +12,7 @@
 
 typedef Eigen::Block<Eigen::Matrix<double, 3, 3, 0, 3, 3>, -1, -1, false> Col; 
 
-Eigen::Matrix3d skew(Eigen::Vector3d &v);
+Eigen::Matrix3d skew(const Eigen::Vector3d& v);
 Eigen::Vector3d orthogonal_vector(Eigen::Vector3d &v1);
 
 template <typename T>

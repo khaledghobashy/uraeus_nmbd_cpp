@@ -32,7 +32,8 @@ typedef std::variant<double,
                     Eigen::Vector3d, 
                     Eigen::Vector4d, 
                     Eigen::Matrix3d,
-                    std::function<double(double)> > variants;
+                    std::function<double(double)>,
+                    std::function<Eigen::Vector3d(double)> > variants;
 
 typedef std::map<std::string, variants> container;
 
@@ -54,6 +55,7 @@ public:
     void get(const std::string& name, Eigen::Vector4d& value);
     void get(const std::string& name, Eigen::Matrix3d& value);
     void get(const std::string& name, std::function<double(double)>& value);
+    void get(const std::string& name, std::function<Eigen::Vector3d(double)>& value);
 
     void constructObject(const std::string& constructor_, 
                         rapidjson::Value::ConstMemberIterator object);

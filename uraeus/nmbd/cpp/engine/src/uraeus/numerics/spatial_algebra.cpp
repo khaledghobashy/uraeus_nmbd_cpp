@@ -2,11 +2,11 @@
 #include "spatial_algebra.hpp"
 
 
-Eigen::Matrix3d skew(Eigen::Vector3d &v)
+Eigen::Matrix3d skew(const Eigen::Vector3d& v)
 {
-    auto &x = v(0);
-    auto &y = v(1);
-    auto &z = v(2);
+    const auto& x = v(0);
+    const auto& y = v(1);
+    const auto& z = v(2);
 
     Eigen::Matrix3d mat;
     mat <<
