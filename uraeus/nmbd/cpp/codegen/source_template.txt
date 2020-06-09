@@ -73,6 +73,7 @@ Topology::Topology(std::string name,
     vel_eq.resize(nc);
     acc_eq.resize(nc);
     frc_eq.resize(n);
+    rct_eq.resize(6*$n_joints);
 
     jac_rows.resize($nnz);
     jac_cols.resize($nnz);
@@ -95,7 +96,7 @@ void Topology::initialize()
 void Topology::map_indicies()
 {
     int i = 0;
-    for (auto& name : names) {indicies_map[prefix + name] = i; i++;};
+    for (auto& name : bodies_names) {indicies_map[prefix + name] = i; i++;};
 };
 
 
@@ -179,14 +180,14 @@ void Topology::eval_mas_eq()
 
 void Topology::eval_reactions()
 {
-    $rct_expressions
+    $rct_expressions1
 
-    //$rct_return;
+    //$rct_return1;
 };
 
 void Topology::eval_reactions(Eigen::Ref<SparseBlock> jacobian)
 {
-    $rct_expressions_2
+    $rct_expressions2
 
-    //$rct_return;
+    rct_eq << $rct_return2;
 };

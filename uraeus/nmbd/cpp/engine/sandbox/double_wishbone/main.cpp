@@ -42,6 +42,7 @@ void test_sim()
     sim.SaveResults("", "pos", 0);
     sim.SaveResults("", "vel", 1);
     sim.SaveResults("", "acc", 2);
+    sim.SaveResults("", "rct", 4);
 
 }
 

@@ -314,6 +314,7 @@ Topology::Topology(std::string name,
     vel_eq.resize(nc);
     acc_eq.resize(nc);
     frc_eq.resize(n);
+    rct_eq.resize(6*24);
 
     jac_rows.resize(224);
     jac_cols.resize(224);
@@ -336,7 +337,7 @@ void Topology::initialize()
 void Topology::map_indicies()
 {
     int i = 0;
-    for (auto& name : names) {indicies_map[prefix + name] = i; i++;};
+    for (auto& name : bodies_names) {indicies_map[prefix + name] = i; i++;};
 };
 
 
@@ -945,16 +946,16 @@ void Topology::eval_acc_eq()
 {
     auto&& a0 = coord.Pd_rbr_uca ;
     auto&& a1 = coord.Pd_ground ;
-    auto&& a2 = Mbar_ground_jcr_uca_chassis.col(2) ;
-    auto&& a3 = a2.transpose() ;
-    auto&& a4 = coord.P_ground ;
-    auto&& a5 = A(a4).transpose() ;
-    auto&& a6 = Mbar_rbr_uca_jcr_uca_chassis.col(0) ;
-    auto&& a7 = coord.P_rbr_uca ;
-    auto&& a8 = A(a7).transpose() ;
-    auto&& a9 = B(a1, a2) ;
+    auto&& a2 = Mbar_rbr_uca_jcr_uca_chassis.col(0) ;
+    auto&& a3 = coord.P_rbr_uca ;
+    auto&& a4 = A(a3).transpose() ;
+    auto&& a5 = Mbar_ground_jcr_uca_chassis.col(2) ;
+    auto&& a6 = B(a1, a5) ;
+    auto&& a7 = a5.transpose() ;
+    auto&& a8 = coord.P_ground ;
+    auto&& a9 = A(a8).transpose() ;
     auto&& a10 = a0.transpose() ;
-    auto&& a11 = B(a4, a2) ;
+    auto&& a11 = B(a8, a5) ;
     auto&& a12 = Mbar_rbr_uca_jcr_uca_chassis.col(1) ;
     auto&& a13 = coord.Pd_rbr_upright ;
     auto&& a14 = coord.Pd_rbl_uca ;
@@ -965,18 +966,18 @@ void Topology::eval_acc_eq()
     auto&& a19 = A(a18).transpose() ;
     auto&& a20 = B(a1, a15) ;
     auto&& a21 = a14.transpose() ;
-    auto&& a22 = B(a4, a15) ;
+    auto&& a22 = B(a8, a15) ;
     auto&& a23 = Mbar_rbl_uca_jcl_uca_chassis.col(1) ;
     auto&& a24 = coord.Pd_rbl_upright ;
     auto&& a25 = coord.Pd_rbr_lca ;
-    auto&& a26 = Mbar_ground_jcr_lca_chassis.col(2) ;
-    auto&& a27 = a26.transpose() ;
-    auto&& a28 = Mbar_rbr_lca_jcr_lca_chassis.col(0) ;
-    auto&& a29 = coord.P_rbr_lca ;
-    auto&& a30 = A(a29).transpose() ;
-    auto&& a31 = B(a1, a26) ;
+    auto&& a26 = Mbar_rbr_lca_jcr_lca_chassis.col(0) ;
+    auto&& a27 = coord.P_rbr_lca ;
+    auto&& a28 = A(a27).transpose() ;
+    auto&& a29 = Mbar_ground_jcr_lca_chassis.col(2) ;
+    auto&& a30 = B(a1, a29) ;
+    auto&& a31 = a29.transpose() ;
     auto&& a32 = a25.transpose() ;
-    auto&& a33 = B(a4, a26) ;
+    auto&& a33 = B(a8, a29) ;
     auto&& a34 = Mbar_rbr_lca_jcr_lca_chassis.col(1) ;
     auto&& a35 = coord.Pd_rbl_lca ;
     auto&& a36 = Mbar_ground_jcl_lca_chassis.col(2) ;
@@ -986,35 +987,35 @@ void Topology::eval_acc_eq()
     auto&& a40 = A(a39).transpose() ;
     auto&& a41 = B(a1, a36) ;
     auto&& a42 = a35.transpose() ;
-    auto&& a43 = B(a4, a36) ;
+    auto&& a43 = B(a8, a36) ;
     auto&& a44 = Mbar_rbl_lca_jcl_lca_chassis.col(1) ;
     auto&& a45 = coord.Pd_rbr_hub ;
-    auto&& a46 = Mbar_rbr_hub_jcr_hub_bearing.col(2) ;
-    auto&& a47 = a46.transpose() ;
-    auto&& a48 = coord.P_rbr_hub ;
-    auto&& a49 = A(a48).transpose() ;
-    auto&& a50 = Mbar_rbr_upright_jcr_hub_bearing.col(0) ;
-    auto&& a51 = coord.P_rbr_upright ;
-    auto&& a52 = A(a51).transpose() ;
-    auto&& a53 = B(a45, a46) ;
+    auto&& a46 = Mbar_rbr_upright_jcr_hub_bearing.col(0) ;
+    auto&& a47 = coord.P_rbr_upright ;
+    auto&& a48 = A(a47).transpose() ;
+    auto&& a49 = Mbar_rbr_hub_jcr_hub_bearing.col(2) ;
+    auto&& a50 = B(a45, a49) ;
+    auto&& a51 = a49.transpose() ;
+    auto&& a52 = coord.P_rbr_hub ;
+    auto&& a53 = A(a52).transpose() ;
     auto&& a54 = a13.transpose() ;
-    auto&& a55 = B(a48, a46) ;
+    auto&& a55 = B(a52, a49) ;
     auto&& a56 = Mbar_rbr_upright_jcr_hub_bearing.col(1) ;
     auto&& a57 = (Eigen::MatrixXd::Identity(1, 1)) ;
     auto&& a58 = Mbar_rbr_hub_jcr_hub_bearing.col(0) ;
     auto&& a59 = Mbar_rbr_upright_jcr_hub_bearing.col(1) ;
     auto&& a60 = Mbar_rbr_upright_jcr_hub_bearing.col(0) ;
     auto&& a61 = coord.Pd_rbl_hub ;
-    auto&& a62 = Mbar_rbl_hub_jcl_hub_bearing.col(2) ;
-    auto&& a63 = a62.transpose() ;
-    auto&& a64 = coord.P_rbl_hub ;
-    auto&& a65 = A(a64).transpose() ;
-    auto&& a66 = Mbar_rbl_upright_jcl_hub_bearing.col(0) ;
-    auto&& a67 = coord.P_rbl_upright ;
-    auto&& a68 = A(a67).transpose() ;
-    auto&& a69 = B(a61, a62) ;
+    auto&& a62 = Mbar_rbl_upright_jcl_hub_bearing.col(0) ;
+    auto&& a63 = coord.P_rbl_upright ;
+    auto&& a64 = A(a63).transpose() ;
+    auto&& a65 = Mbar_rbl_hub_jcl_hub_bearing.col(2) ;
+    auto&& a66 = B(a61, a65) ;
+    auto&& a67 = a65.transpose() ;
+    auto&& a68 = coord.P_rbl_hub ;
+    auto&& a69 = A(a68).transpose() ;
     auto&& a70 = a24.transpose() ;
-    auto&& a71 = B(a64, a62) ;
+    auto&& a71 = B(a68, a65) ;
     auto&& a72 = Mbar_rbl_upright_jcl_hub_bearing.col(1) ;
     auto&& a73 = Mbar_rbl_hub_jcl_hub_bearing.col(0) ;
     auto&& a74 = Mbar_rbl_upright_jcl_hub_bearing.col(1) ;
@@ -1071,16 +1072,16 @@ void Topology::eval_acc_eq()
     auto&& a125 = ((B(a102, a123) * a102) + (-1 * B(a110, a124) * a110)) ;
     auto&& a126 = (coord.Rd_rbl_upper_strut + (-1 * coord.Rd_rbl_lower_strut) + (B(a105, a123) * a102) + (-1 * B(a114, a124) * a110)) ;
     auto&& a127 = (coord.R_rbl_upper_strut.transpose() + (-1 * coord.R_rbl_lower_strut.transpose()) + (a123.transpose() * a106) + (-1 * a124.transpose() * a115)) ;
-    auto&& a128 = Mbar_rbr_lca_jcr_strut_lca.col(0) ;
-    auto&& a129 = Mbar_rbr_lower_strut_jcr_strut_lca.col(0) ;
+    auto&& a128 = Mbar_rbr_lower_strut_jcr_strut_lca.col(0) ;
+    auto&& a129 = Mbar_rbr_lca_jcr_strut_lca.col(0) ;
     auto&& a130 = a84.transpose() ;
     auto&& a131 = Mbar_rbl_lower_strut_jcl_strut_lca.col(0) ;
     auto&& a132 = Mbar_rbl_lca_jcl_strut_lca.col(0) ;
     auto&& a133 = a110.transpose() ;
     auto&& a134 = coord.Pd_rbr_tie_rod ;
-    auto&& a135 = Mbar_rbr_tie_rod_jcr_tie_steering.col(0) ;
-    auto&& a136 = coord.P_rbr_tie_rod ;
-    auto&& a137 = Mbar_ground_jcr_tie_steering.col(0) ;
+    auto&& a135 = Mbar_ground_jcr_tie_steering.col(0) ;
+    auto&& a136 = Mbar_rbr_tie_rod_jcr_tie_steering.col(0) ;
+    auto&& a137 = coord.P_rbr_tie_rod ;
     auto&& a138 = a134.transpose() ;
     auto&& a139 = coord.Pd_rbl_tie_rod ;
     auto&& a140 = Mbar_rbl_tie_rod_jcl_tie_steering.col(0) ;
@@ -1090,50 +1091,50 @@ void Topology::eval_acc_eq()
 
     acc_eq << 
         ((B(a0, ubar_rbr_uca_jcr_uca_chassis) * a0) + (-1 * B(a1, ubar_ground_jcr_uca_chassis) * a1)),
-        ((a3 * a5 * B(a0, a6) * a0) + (a6.transpose() * a8 * a9 * a1) + (2 * (a10 * B(a7, a6).transpose() * a11 * a1))),
-        ((a3 * a5 * B(a0, a12) * a0) + (a12.transpose() * a8 * a9 * a1) + (2 * (a10 * B(a7, a12).transpose() * a11 * a1))),
+        ((a2.transpose() * a4 * a6 * a1) + (a7 * a9 * B(a0, a2) * a0) + (2 * (a10 * B(a3, a2).transpose() * a11 * a1))),
+        ((a12.transpose() * a4 * a6 * a1) + (a7 * a9 * B(a0, a12) * a0) + (2 * (a10 * B(a3, a12).transpose() * a11 * a1))),
         ((B(a0, ubar_rbr_uca_jcr_uca_upright) * a0) + (-1 * B(a13, ubar_rbr_upright_jcr_uca_upright) * a13)),
         ((B(a14, ubar_rbl_uca_jcl_uca_chassis) * a14) + (-1 * B(a1, ubar_ground_jcl_uca_chassis) * a1)),
-        ((a16 * a5 * B(a14, a17) * a14) + (a17.transpose() * a19 * a20 * a1) + (2 * (a21 * B(a18, a17).transpose() * a22 * a1))),
-        ((a16 * a5 * B(a14, a23) * a14) + (a23.transpose() * a19 * a20 * a1) + (2 * (a21 * B(a18, a23).transpose() * a22 * a1))),
+        ((a16 * a9 * B(a14, a17) * a14) + (a17.transpose() * a19 * a20 * a1) + (2 * (a21 * B(a18, a17).transpose() * a22 * a1))),
+        ((a16 * a9 * B(a14, a23) * a14) + (a23.transpose() * a19 * a20 * a1) + (2 * (a21 * B(a18, a23).transpose() * a22 * a1))),
         ((B(a14, ubar_rbl_uca_jcl_uca_upright) * a14) + (-1 * B(a24, ubar_rbl_upright_jcl_uca_upright) * a24)),
         ((B(a25, ubar_rbr_lca_jcr_lca_chassis) * a25) + (-1 * B(a1, ubar_ground_jcr_lca_chassis) * a1)),
-        ((a27 * a5 * B(a25, a28) * a25) + (a28.transpose() * a30 * a31 * a1) + (2 * (a32 * B(a29, a28).transpose() * a33 * a1))),
-        ((a27 * a5 * B(a25, a34) * a25) + (a34.transpose() * a30 * a31 * a1) + (2 * (a32 * B(a29, a34).transpose() * a33 * a1))),
+        ((a26.transpose() * a28 * a30 * a1) + (a31 * a9 * B(a25, a26) * a25) + (2 * (a32 * B(a27, a26).transpose() * a33 * a1))),
+        ((a34.transpose() * a28 * a30 * a1) + (a31 * a9 * B(a25, a34) * a25) + (2 * (a32 * B(a27, a34).transpose() * a33 * a1))),
         ((B(a25, ubar_rbr_lca_jcr_lca_upright) * a25) + (-1 * B(a13, ubar_rbr_upright_jcr_lca_upright) * a13)),
         ((B(a35, ubar_rbl_lca_jcl_lca_chassis) * a35) + (-1 * B(a1, ubar_ground_jcl_lca_chassis) * a1)),
-        ((a37 * a5 * B(a35, a38) * a35) + (a38.transpose() * a40 * a41 * a1) + (2 * (a42 * B(a39, a38).transpose() * a43 * a1))),
-        ((a37 * a5 * B(a35, a44) * a35) + (a44.transpose() * a40 * a41 * a1) + (2 * (a42 * B(a39, a44).transpose() * a43 * a1))),
+        ((a37 * a9 * B(a35, a38) * a35) + (a38.transpose() * a40 * a41 * a1) + (2 * (a42 * B(a39, a38).transpose() * a43 * a1))),
+        ((a37 * a9 * B(a35, a44) * a35) + (a44.transpose() * a40 * a41 * a1) + (2 * (a42 * B(a39, a44).transpose() * a43 * a1))),
         ((B(a35, ubar_rbl_lca_jcl_lca_upright) * a35) + (-1 * B(a24, ubar_rbl_upright_jcl_lca_upright) * a24)),
         ((B(a13, ubar_rbr_upright_jcr_hub_bearing) * a13) + (-1 * B(a45, ubar_rbr_hub_jcr_hub_bearing) * a45)),
-        ((a47 * a49 * B(a13, a50) * a13) + (a50.transpose() * a52 * a53 * a45) + (2 * (a54 * B(a51, a50).transpose() * a55 * a45))),
-        ((a47 * a49 * B(a13, a56) * a13) + (a56.transpose() * a52 * a53 * a45) + (2 * (a54 * B(a51, a56).transpose() * a55 * a45))),
-        (((-1 * derivative(config.UF_mcr_wheel_lock, t, 2)) * a57) + (a58.transpose() * a49 * ((std::cos(config.UF_mcr_wheel_lock(t)) * (B(a13, a59))) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * B(a13, a60))) * a13) + (((std::cos(config.UF_mcr_wheel_lock(t)) * (a59.transpose() * a52)) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * a60.transpose() * a52)) * B(a45, a58) * a45) + (2 * (((std::cos(config.UF_mcr_wheel_lock(t)) * (a54 * B(a51, a59).transpose())) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * a54 * B(a51, a60).transpose())) * B(a48, a58) * a45))),
+        ((a46.transpose() * a48 * a50 * a45) + (a51 * a53 * B(a13, a46) * a13) + (2 * (a54 * B(a47, a46).transpose() * a55 * a45))),
+        ((a56.transpose() * a48 * a50 * a45) + (a51 * a53 * B(a13, a56) * a13) + (2 * (a54 * B(a47, a56).transpose() * a55 * a45))),
+        (((-1 * derivative(config.UF_mcr_wheel_lock, t, 2)) * a57) + (a58.transpose() * a53 * ((std::cos(config.UF_mcr_wheel_lock(t)) * (B(a13, a59))) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * B(a13, a60))) * a13) + (((std::cos(config.UF_mcr_wheel_lock(t)) * (a59.transpose() * a48)) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * a60.transpose() * a48)) * B(a45, a58) * a45) + (2 * (((std::cos(config.UF_mcr_wheel_lock(t)) * (a54 * B(a47, a59).transpose())) + ((-1 * std::sin(config.UF_mcr_wheel_lock(t))) * a54 * B(a47, a60).transpose())) * B(a52, a58) * a45))),
         ((B(a24, ubar_rbl_upright_jcl_hub_bearing) * a24) + (-1 * B(a61, ubar_rbl_hub_jcl_hub_bearing) * a61)),
-        ((a63 * a65 * B(a24, a66) * a24) + (a66.transpose() * a68 * a69 * a61) + (2 * (a70 * B(a67, a66).transpose() * a71 * a61))),
-        ((a63 * a65 * B(a24, a72) * a24) + (a72.transpose() * a68 * a69 * a61) + (2 * (a70 * B(a67, a72).transpose() * a71 * a61))),
-        (((-1 * derivative(config.UF_mcl_wheel_lock, t, 2)) * a57) + (a73.transpose() * a65 * ((std::cos(config.UF_mcl_wheel_lock(t)) * (B(a24, a74))) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * B(a24, a75))) * a24) + (((std::cos(config.UF_mcl_wheel_lock(t)) * (a74.transpose() * a68)) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * a75.transpose() * a68)) * B(a61, a73) * a61) + (2 * (((std::cos(config.UF_mcl_wheel_lock(t)) * (a70 * B(a67, a74).transpose())) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * a70 * B(a67, a75).transpose())) * B(a64, a73) * a61))),
+        ((a62.transpose() * a64 * a66 * a61) + (a67 * a69 * B(a24, a62) * a24) + (2 * (a70 * B(a63, a62).transpose() * a71 * a61))),
+        ((a72.transpose() * a64 * a66 * a61) + (a67 * a69 * B(a24, a72) * a24) + (2 * (a70 * B(a63, a72).transpose() * a71 * a61))),
+        (((-1 * derivative(config.UF_mcl_wheel_lock, t, 2)) * a57) + (a73.transpose() * a69 * ((std::cos(config.UF_mcl_wheel_lock(t)) * (B(a24, a74))) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * B(a24, a75))) * a24) + (((std::cos(config.UF_mcl_wheel_lock(t)) * (a74.transpose() * a64)) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * a75.transpose() * a64)) * B(a61, a73) * a61) + (2 * (((std::cos(config.UF_mcl_wheel_lock(t)) * (a70 * B(a63, a74).transpose())) + ((-1 * std::sin(config.UF_mcl_wheel_lock(t))) * a70 * B(a63, a75).transpose())) * B(a68, a73) * a61))),
         ((B(a76, ubar_rbr_upper_strut_jcr_strut_chassis) * a76) + (-1 * B(a1, ubar_ground_jcr_strut_chassis) * a1)),
-        ((a77.transpose() * a5 * B(a76, a78) * a76) + (a78.transpose() * a80 * B(a1, a77) * a1) + (2 * (a81 * B(a79, a78).transpose() * B(a4, a77) * a1))),
+        ((a77.transpose() * a9 * B(a76, a78) * a76) + (a78.transpose() * a80 * B(a1, a77) * a1) + (2 * (a81 * B(a79, a78).transpose() * B(a8, a77) * a1))),
         ((a83 * a80 * a86 * a84) + (a87 * a89 * a90 * a76) + (2 * (a81 * a91 * a92 * a84))),
         ((a94 * a80 * a86 * a84) + (a87 * a89 * a95 * a76) + (2 * (a81 * a96 * a92 * a84))),
         ((a83 * a80 * a99) + (2 * (a81 * a91 * a100)) + (a101 * a90 * a76)),
         ((a94 * a80 * a99) + (2 * (a81 * a96 * a100)) + (a101 * a95 * a76)),
         ((B(a102, ubar_rbl_upper_strut_jcl_strut_chassis) * a102) + (-1 * B(a1, ubar_ground_jcl_strut_chassis) * a1)),
-        ((a103.transpose() * a5 * B(a102, a104) * a102) + (a104.transpose() * a106 * B(a1, a103) * a1) + (2 * (a107 * B(a105, a104).transpose() * B(a4, a103) * a1))),
+        ((a103.transpose() * a9 * B(a102, a104) * a102) + (a104.transpose() * a106 * B(a1, a103) * a1) + (2 * (a107 * B(a105, a104).transpose() * B(a8, a103) * a1))),
         ((a109 * a106 * a112 * a110) + (a113 * a115 * a116 * a102) + (2 * (a107 * a117 * a118 * a110))),
         ((a120 * a106 * a112 * a110) + (a113 * a115 * a121 * a102) + (2 * (a107 * a122 * a118 * a110))),
         ((a109 * a106 * a125) + (2 * (a107 * a117 * a126)) + (a127 * a116 * a102)),
         ((a120 * a106 * a125) + (2 * (a107 * a122 * a126)) + (a127 * a121 * a102)),
         ((B(a84, ubar_rbr_lower_strut_jcr_strut_lca) * a84) + (-1 * B(a25, ubar_rbr_lca_jcr_strut_lca) * a25)),
-        ((a128.transpose() * a30 * B(a84, a129) * a84) + (a129.transpose() * a89 * B(a25, a128) * a25) + (2 * (a130 * B(a88, a129).transpose() * B(a29, a128) * a25))),
+        ((a128.transpose() * a89 * B(a25, a129) * a25) + (a129.transpose() * a28 * B(a84, a128) * a84) + (2 * (a130 * B(a88, a128).transpose() * B(a27, a129) * a25))),
         ((B(a110, ubar_rbl_lower_strut_jcl_strut_lca) * a110) + (-1 * B(a35, ubar_rbl_lca_jcl_strut_lca) * a35)),
         ((a131.transpose() * a115 * B(a35, a132) * a35) + (a132.transpose() * a40 * B(a110, a131) * a110) + (2 * (a133 * B(a114, a131).transpose() * B(a39, a132) * a35))),
         ((B(a134, ubar_rbr_tie_rod_jcr_tie_steering) * a134) + (-1 * B(a1, ubar_ground_jcr_tie_steering) * a1)),
-        ((a135.transpose() * A(a136).transpose() * B(a1, a137) * a1) + (a137.transpose() * a5 * B(a134, a135) * a134) + (2 * (a138 * B(a136, a135).transpose() * B(a4, a137) * a1))),
+        ((a135.transpose() * a9 * B(a134, a136) * a134) + (a136.transpose() * A(a137).transpose() * B(a1, a135) * a1) + (2 * (a138 * B(a137, a136).transpose() * B(a8, a135) * a1))),
         ((B(a134, ubar_rbr_tie_rod_jcr_tie_upright) * a134) + (-1 * B(a13, ubar_rbr_upright_jcr_tie_upright) * a13)),
         ((B(a139, ubar_rbl_tie_rod_jcl_tie_steering) * a139) + (-1 * B(a1, ubar_ground_jcl_tie_steering) * a1)),
-        ((a140.transpose() * A(a141).transpose() * B(a1, a142) * a1) + (a142.transpose() * a5 * B(a139, a140) * a139) + (2 * (a143 * B(a141, a140).transpose() * B(a4, a142) * a1))),
+        ((a140.transpose() * A(a141).transpose() * B(a1, a142) * a1) + (a142.transpose() * a9 * B(a139, a140) * a139) + (2 * (a143 * B(a141, a140).transpose() * B(a8, a142) * a1))),
         ((B(a139, ubar_rbl_tie_rod_jcl_tie_upright) * a139) + (-1 * B(a24, ubar_rbl_upright_jcl_tie_upright) * a24)),
         (((-1 * derivative(config.UF_mcr_wheel_travel, t, 2)) * a57) + ((B(a45, ubar_rbr_hub_mcr_wheel_travel) * a45) + (-1 * B(a1, ubar_ground_mcr_wheel_travel) * a1)).segment(2, 1)),
         (((-1 * derivative(config.UF_mcl_wheel_travel, t, 2)) * a57) + ((B(a61, ubar_rbl_hub_mcl_wheel_travel) * a61) + (-1 * B(a1, ubar_ground_mcl_wheel_travel) * a1)).segment(2, 1)),
@@ -1652,156 +1653,203 @@ void Topology::eval_mas_eq()
 
 void Topology::eval_reactions()
 {
-    //
+    //rct_expressions
 
-    //rct_return;
+    ////rct_return;
 };
 
 void Topology::eval_reactions(Eigen::Ref<SparseBlock> jacobian)
 {
     // Joint Name : jcr_uca_chassis
-const Eigen::MatrixXd& Jac_jcr_uca_chassis = jacobian.block(0, 7, 5, 7);
-Eigen::VectorXd Q_jcr_uca_chassis = -Jac_jcr_uca_chassis.transpose() * coord.L_jcr_uca_chassis;
-const Eigen::VectorXd& F_jcr_uca_chassis = Q_jcr_uca_chassis.segment(0, 3);
-Eigen::VectorXd T_jcr_uca_chassis = 0.5*E(coord.P_rbr_uca) * Q_jcr_uca_chassis.segment(3, 4) - skew(A(coord.P_rbr_uca)*ubar_rbr_uca_jcr_uca_chassis)*F_jcr_uca_chassis;
+        const Eigen::MatrixXd& Jac_jcr_uca_chassis = jacobian.block(0, 7, 5, 7);
+        Eigen::VectorXd Q_jcr_uca_chassis = -Jac_jcr_uca_chassis.transpose() * coord.L_jcr_uca_chassis;
+        const Eigen::VectorXd& F_jcr_uca_chassis = Q_jcr_uca_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcr_uca_chassis = 0.5*E(coord.P_rbr_uca) * Q_jcr_uca_chassis.segment(3, 4) - skew(A(coord.P_rbr_uca)*ubar_rbr_uca_jcr_uca_chassis)*F_jcr_uca_chassis;
 
-// Joint Name : jcr_uca_upright
-const Eigen::MatrixXd& Jac_jcr_uca_upright = jacobian.block(5, 7, 3, 7);
-Eigen::VectorXd Q_jcr_uca_upright = -Jac_jcr_uca_upright.transpose() * coord.L_jcr_uca_upright;
-const Eigen::VectorXd& F_jcr_uca_upright = Q_jcr_uca_upright.segment(0, 3);
-Eigen::VectorXd T_jcr_uca_upright = 0.5*E(coord.P_rbr_uca) * Q_jcr_uca_upright.segment(3, 4) - skew(A(coord.P_rbr_uca)*ubar_rbr_uca_jcr_uca_upright)*F_jcr_uca_upright;
+        // Joint Name : jcr_uca_upright
+        const Eigen::MatrixXd& Jac_jcr_uca_upright = jacobian.block(5, 7, 3, 7);
+        Eigen::VectorXd Q_jcr_uca_upright = -Jac_jcr_uca_upright.transpose() * coord.L_jcr_uca_upright;
+        const Eigen::VectorXd& F_jcr_uca_upright = Q_jcr_uca_upright.segment(0, 3);
+        Eigen::VectorXd T_jcr_uca_upright = 0.5*E(coord.P_rbr_uca) * Q_jcr_uca_upright.segment(3, 4) - skew(A(coord.P_rbr_uca)*ubar_rbr_uca_jcr_uca_upright)*F_jcr_uca_upright;
 
-// Joint Name : jcl_uca_chassis
-const Eigen::MatrixXd& Jac_jcl_uca_chassis = jacobian.block(8, 14, 5, 7);
-Eigen::VectorXd Q_jcl_uca_chassis = -Jac_jcl_uca_chassis.transpose() * coord.L_jcl_uca_chassis;
-const Eigen::VectorXd& F_jcl_uca_chassis = Q_jcl_uca_chassis.segment(0, 3);
-Eigen::VectorXd T_jcl_uca_chassis = 0.5*E(coord.P_rbl_uca) * Q_jcl_uca_chassis.segment(3, 4) - skew(A(coord.P_rbl_uca)*ubar_rbl_uca_jcl_uca_chassis)*F_jcl_uca_chassis;
+        // Joint Name : jcl_uca_chassis
+        const Eigen::MatrixXd& Jac_jcl_uca_chassis = jacobian.block(8, 14, 5, 7);
+        Eigen::VectorXd Q_jcl_uca_chassis = -Jac_jcl_uca_chassis.transpose() * coord.L_jcl_uca_chassis;
+        const Eigen::VectorXd& F_jcl_uca_chassis = Q_jcl_uca_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcl_uca_chassis = 0.5*E(coord.P_rbl_uca) * Q_jcl_uca_chassis.segment(3, 4) - skew(A(coord.P_rbl_uca)*ubar_rbl_uca_jcl_uca_chassis)*F_jcl_uca_chassis;
 
-// Joint Name : jcl_uca_upright
-const Eigen::MatrixXd& Jac_jcl_uca_upright = jacobian.block(13, 14, 3, 7);
-Eigen::VectorXd Q_jcl_uca_upright = -Jac_jcl_uca_upright.transpose() * coord.L_jcl_uca_upright;
-const Eigen::VectorXd& F_jcl_uca_upright = Q_jcl_uca_upright.segment(0, 3);
-Eigen::VectorXd T_jcl_uca_upright = 0.5*E(coord.P_rbl_uca) * Q_jcl_uca_upright.segment(3, 4) - skew(A(coord.P_rbl_uca)*ubar_rbl_uca_jcl_uca_upright)*F_jcl_uca_upright;
+        // Joint Name : jcl_uca_upright
+        const Eigen::MatrixXd& Jac_jcl_uca_upright = jacobian.block(13, 14, 3, 7);
+        Eigen::VectorXd Q_jcl_uca_upright = -Jac_jcl_uca_upright.transpose() * coord.L_jcl_uca_upright;
+        const Eigen::VectorXd& F_jcl_uca_upright = Q_jcl_uca_upright.segment(0, 3);
+        Eigen::VectorXd T_jcl_uca_upright = 0.5*E(coord.P_rbl_uca) * Q_jcl_uca_upright.segment(3, 4) - skew(A(coord.P_rbl_uca)*ubar_rbl_uca_jcl_uca_upright)*F_jcl_uca_upright;
 
-// Joint Name : jcr_lca_chassis
-const Eigen::MatrixXd& Jac_jcr_lca_chassis = jacobian.block(16, 21, 5, 7);
-Eigen::VectorXd Q_jcr_lca_chassis = -Jac_jcr_lca_chassis.transpose() * coord.L_jcr_lca_chassis;
-const Eigen::VectorXd& F_jcr_lca_chassis = Q_jcr_lca_chassis.segment(0, 3);
-Eigen::VectorXd T_jcr_lca_chassis = 0.5*E(coord.P_rbr_lca) * Q_jcr_lca_chassis.segment(3, 4) - skew(A(coord.P_rbr_lca)*ubar_rbr_lca_jcr_lca_chassis)*F_jcr_lca_chassis;
+        // Joint Name : jcr_lca_chassis
+        const Eigen::MatrixXd& Jac_jcr_lca_chassis = jacobian.block(16, 21, 5, 7);
+        Eigen::VectorXd Q_jcr_lca_chassis = -Jac_jcr_lca_chassis.transpose() * coord.L_jcr_lca_chassis;
+        const Eigen::VectorXd& F_jcr_lca_chassis = Q_jcr_lca_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcr_lca_chassis = 0.5*E(coord.P_rbr_lca) * Q_jcr_lca_chassis.segment(3, 4) - skew(A(coord.P_rbr_lca)*ubar_rbr_lca_jcr_lca_chassis)*F_jcr_lca_chassis;
 
-// Joint Name : jcr_lca_upright
-const Eigen::MatrixXd& Jac_jcr_lca_upright = jacobian.block(21, 21, 3, 7);
-Eigen::VectorXd Q_jcr_lca_upright = -Jac_jcr_lca_upright.transpose() * coord.L_jcr_lca_upright;
-const Eigen::VectorXd& F_jcr_lca_upright = Q_jcr_lca_upright.segment(0, 3);
-Eigen::VectorXd T_jcr_lca_upright = 0.5*E(coord.P_rbr_lca) * Q_jcr_lca_upright.segment(3, 4) - skew(A(coord.P_rbr_lca)*ubar_rbr_lca_jcr_lca_upright)*F_jcr_lca_upright;
+        // Joint Name : jcr_lca_upright
+        const Eigen::MatrixXd& Jac_jcr_lca_upright = jacobian.block(21, 21, 3, 7);
+        Eigen::VectorXd Q_jcr_lca_upright = -Jac_jcr_lca_upright.transpose() * coord.L_jcr_lca_upright;
+        const Eigen::VectorXd& F_jcr_lca_upright = Q_jcr_lca_upright.segment(0, 3);
+        Eigen::VectorXd T_jcr_lca_upright = 0.5*E(coord.P_rbr_lca) * Q_jcr_lca_upright.segment(3, 4) - skew(A(coord.P_rbr_lca)*ubar_rbr_lca_jcr_lca_upright)*F_jcr_lca_upright;
 
-// Joint Name : jcl_lca_chassis
-const Eigen::MatrixXd& Jac_jcl_lca_chassis = jacobian.block(24, 28, 5, 7);
-Eigen::VectorXd Q_jcl_lca_chassis = -Jac_jcl_lca_chassis.transpose() * coord.L_jcl_lca_chassis;
-const Eigen::VectorXd& F_jcl_lca_chassis = Q_jcl_lca_chassis.segment(0, 3);
-Eigen::VectorXd T_jcl_lca_chassis = 0.5*E(coord.P_rbl_lca) * Q_jcl_lca_chassis.segment(3, 4) - skew(A(coord.P_rbl_lca)*ubar_rbl_lca_jcl_lca_chassis)*F_jcl_lca_chassis;
+        // Joint Name : jcl_lca_chassis
+        const Eigen::MatrixXd& Jac_jcl_lca_chassis = jacobian.block(24, 28, 5, 7);
+        Eigen::VectorXd Q_jcl_lca_chassis = -Jac_jcl_lca_chassis.transpose() * coord.L_jcl_lca_chassis;
+        const Eigen::VectorXd& F_jcl_lca_chassis = Q_jcl_lca_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcl_lca_chassis = 0.5*E(coord.P_rbl_lca) * Q_jcl_lca_chassis.segment(3, 4) - skew(A(coord.P_rbl_lca)*ubar_rbl_lca_jcl_lca_chassis)*F_jcl_lca_chassis;
 
-// Joint Name : jcl_lca_upright
-const Eigen::MatrixXd& Jac_jcl_lca_upright = jacobian.block(29, 28, 3, 7);
-Eigen::VectorXd Q_jcl_lca_upright = -Jac_jcl_lca_upright.transpose() * coord.L_jcl_lca_upright;
-const Eigen::VectorXd& F_jcl_lca_upright = Q_jcl_lca_upright.segment(0, 3);
-Eigen::VectorXd T_jcl_lca_upright = 0.5*E(coord.P_rbl_lca) * Q_jcl_lca_upright.segment(3, 4) - skew(A(coord.P_rbl_lca)*ubar_rbl_lca_jcl_lca_upright)*F_jcl_lca_upright;
+        // Joint Name : jcl_lca_upright
+        const Eigen::MatrixXd& Jac_jcl_lca_upright = jacobian.block(29, 28, 3, 7);
+        Eigen::VectorXd Q_jcl_lca_upright = -Jac_jcl_lca_upright.transpose() * coord.L_jcl_lca_upright;
+        const Eigen::VectorXd& F_jcl_lca_upright = Q_jcl_lca_upright.segment(0, 3);
+        Eigen::VectorXd T_jcl_lca_upright = 0.5*E(coord.P_rbl_lca) * Q_jcl_lca_upright.segment(3, 4) - skew(A(coord.P_rbl_lca)*ubar_rbl_lca_jcl_lca_upright)*F_jcl_lca_upright;
 
-// Joint Name : jcr_hub_bearing
-const Eigen::MatrixXd& Jac_jcr_hub_bearing = jacobian.block(32, 35, 5, 7);
-Eigen::VectorXd Q_jcr_hub_bearing = -Jac_jcr_hub_bearing.transpose() * coord.L_jcr_hub_bearing;
-const Eigen::VectorXd& F_jcr_hub_bearing = Q_jcr_hub_bearing.segment(0, 3);
-Eigen::VectorXd T_jcr_hub_bearing = 0.5*E(coord.P_rbr_upright) * Q_jcr_hub_bearing.segment(3, 4) - skew(A(coord.P_rbr_upright)*ubar_rbr_upright_jcr_hub_bearing)*F_jcr_hub_bearing;
+        // Joint Name : jcr_hub_bearing
+        const Eigen::MatrixXd& Jac_jcr_hub_bearing = jacobian.block(32, 35, 5, 7);
+        Eigen::VectorXd Q_jcr_hub_bearing = -Jac_jcr_hub_bearing.transpose() * coord.L_jcr_hub_bearing;
+        const Eigen::VectorXd& F_jcr_hub_bearing = Q_jcr_hub_bearing.segment(0, 3);
+        Eigen::VectorXd T_jcr_hub_bearing = 0.5*E(coord.P_rbr_upright) * Q_jcr_hub_bearing.segment(3, 4) - skew(A(coord.P_rbr_upright)*ubar_rbr_upright_jcr_hub_bearing)*F_jcr_hub_bearing;
 
-// Joint Name : mcr_wheel_lock
-const Eigen::MatrixXd& Jac_mcr_wheel_lock = jacobian.block(37, 35, 1, 7);
-Eigen::VectorXd Q_mcr_wheel_lock = -Jac_mcr_wheel_lock.transpose() * coord.L_mcr_wheel_lock;
-const Eigen::VectorXd& F_mcr_wheel_lock = Q_mcr_wheel_lock.segment(0, 3);
-Eigen::VectorXd T_mcr_wheel_lock = 0.5*E(coord.P_rbr_upright) * Q_mcr_wheel_lock.segment(3, 4);
+        // Joint Name : mcr_wheel_lock
+        const Eigen::MatrixXd& Jac_mcr_wheel_lock = jacobian.block(37, 35, 1, 7);
+        Eigen::VectorXd Q_mcr_wheel_lock = -Jac_mcr_wheel_lock.transpose() * coord.L_mcr_wheel_lock;
+        const Eigen::VectorXd& F_mcr_wheel_lock = Q_mcr_wheel_lock.segment(0, 3);
+        Eigen::VectorXd T_mcr_wheel_lock = 0.5*E(coord.P_rbr_upright) * Q_mcr_wheel_lock.segment(3, 4);
 
-// Joint Name : jcl_hub_bearing
-const Eigen::MatrixXd& Jac_jcl_hub_bearing = jacobian.block(38, 42, 5, 7);
-Eigen::VectorXd Q_jcl_hub_bearing = -Jac_jcl_hub_bearing.transpose() * coord.L_jcl_hub_bearing;
-const Eigen::VectorXd& F_jcl_hub_bearing = Q_jcl_hub_bearing.segment(0, 3);
-Eigen::VectorXd T_jcl_hub_bearing = 0.5*E(coord.P_rbl_upright) * Q_jcl_hub_bearing.segment(3, 4) - skew(A(coord.P_rbl_upright)*ubar_rbl_upright_jcl_hub_bearing)*F_jcl_hub_bearing;
+        // Joint Name : jcl_hub_bearing
+        const Eigen::MatrixXd& Jac_jcl_hub_bearing = jacobian.block(38, 42, 5, 7);
+        Eigen::VectorXd Q_jcl_hub_bearing = -Jac_jcl_hub_bearing.transpose() * coord.L_jcl_hub_bearing;
+        const Eigen::VectorXd& F_jcl_hub_bearing = Q_jcl_hub_bearing.segment(0, 3);
+        Eigen::VectorXd T_jcl_hub_bearing = 0.5*E(coord.P_rbl_upright) * Q_jcl_hub_bearing.segment(3, 4) - skew(A(coord.P_rbl_upright)*ubar_rbl_upright_jcl_hub_bearing)*F_jcl_hub_bearing;
 
-// Joint Name : mcl_wheel_lock
-const Eigen::MatrixXd& Jac_mcl_wheel_lock = jacobian.block(43, 42, 1, 7);
-Eigen::VectorXd Q_mcl_wheel_lock = -Jac_mcl_wheel_lock.transpose() * coord.L_mcl_wheel_lock;
-const Eigen::VectorXd& F_mcl_wheel_lock = Q_mcl_wheel_lock.segment(0, 3);
-Eigen::VectorXd T_mcl_wheel_lock = 0.5*E(coord.P_rbl_upright) * Q_mcl_wheel_lock.segment(3, 4);
+        // Joint Name : mcl_wheel_lock
+        const Eigen::MatrixXd& Jac_mcl_wheel_lock = jacobian.block(43, 42, 1, 7);
+        Eigen::VectorXd Q_mcl_wheel_lock = -Jac_mcl_wheel_lock.transpose() * coord.L_mcl_wheel_lock;
+        const Eigen::VectorXd& F_mcl_wheel_lock = Q_mcl_wheel_lock.segment(0, 3);
+        Eigen::VectorXd T_mcl_wheel_lock = 0.5*E(coord.P_rbl_upright) * Q_mcl_wheel_lock.segment(3, 4);
 
-// Joint Name : jcr_strut_chassis
-const Eigen::MatrixXd& Jac_jcr_strut_chassis = jacobian.block(44, 49, 4, 7);
-Eigen::VectorXd Q_jcr_strut_chassis = -Jac_jcr_strut_chassis.transpose() * coord.L_jcr_strut_chassis;
-const Eigen::VectorXd& F_jcr_strut_chassis = Q_jcr_strut_chassis.segment(0, 3);
-Eigen::VectorXd T_jcr_strut_chassis = 0.5*E(coord.P_rbr_upper_strut) * Q_jcr_strut_chassis.segment(3, 4) - skew(A(coord.P_rbr_upper_strut)*ubar_rbr_upper_strut_jcr_strut_chassis)*F_jcr_strut_chassis;
+        // Joint Name : jcr_strut_chassis
+        const Eigen::MatrixXd& Jac_jcr_strut_chassis = jacobian.block(44, 49, 4, 7);
+        Eigen::VectorXd Q_jcr_strut_chassis = -Jac_jcr_strut_chassis.transpose() * coord.L_jcr_strut_chassis;
+        const Eigen::VectorXd& F_jcr_strut_chassis = Q_jcr_strut_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcr_strut_chassis = 0.5*E(coord.P_rbr_upper_strut) * Q_jcr_strut_chassis.segment(3, 4) - skew(A(coord.P_rbr_upper_strut)*ubar_rbr_upper_strut_jcr_strut_chassis)*F_jcr_strut_chassis;
 
-// Joint Name : jcr_strut
-const Eigen::MatrixXd& Jac_jcr_strut = jacobian.block(48, 49, 4, 7);
-Eigen::VectorXd Q_jcr_strut = -Jac_jcr_strut.transpose() * coord.L_jcr_strut;
-const Eigen::VectorXd& F_jcr_strut = Q_jcr_strut.segment(0, 3);
-Eigen::VectorXd T_jcr_strut = 0.5*E(coord.P_rbr_upper_strut) * Q_jcr_strut.segment(3, 4) - skew(A(coord.P_rbr_upper_strut)*ubar_rbr_upper_strut_jcr_strut)*F_jcr_strut;
+        // Joint Name : jcr_strut
+        const Eigen::MatrixXd& Jac_jcr_strut = jacobian.block(48, 49, 4, 7);
+        Eigen::VectorXd Q_jcr_strut = -Jac_jcr_strut.transpose() * coord.L_jcr_strut;
+        const Eigen::VectorXd& F_jcr_strut = Q_jcr_strut.segment(0, 3);
+        Eigen::VectorXd T_jcr_strut = 0.5*E(coord.P_rbr_upper_strut) * Q_jcr_strut.segment(3, 4) - skew(A(coord.P_rbr_upper_strut)*ubar_rbr_upper_strut_jcr_strut)*F_jcr_strut;
 
-// Joint Name : jcl_strut_chassis
-const Eigen::MatrixXd& Jac_jcl_strut_chassis = jacobian.block(52, 56, 4, 7);
-Eigen::VectorXd Q_jcl_strut_chassis = -Jac_jcl_strut_chassis.transpose() * coord.L_jcl_strut_chassis;
-const Eigen::VectorXd& F_jcl_strut_chassis = Q_jcl_strut_chassis.segment(0, 3);
-Eigen::VectorXd T_jcl_strut_chassis = 0.5*E(coord.P_rbl_upper_strut) * Q_jcl_strut_chassis.segment(3, 4) - skew(A(coord.P_rbl_upper_strut)*ubar_rbl_upper_strut_jcl_strut_chassis)*F_jcl_strut_chassis;
+        // Joint Name : jcl_strut_chassis
+        const Eigen::MatrixXd& Jac_jcl_strut_chassis = jacobian.block(52, 56, 4, 7);
+        Eigen::VectorXd Q_jcl_strut_chassis = -Jac_jcl_strut_chassis.transpose() * coord.L_jcl_strut_chassis;
+        const Eigen::VectorXd& F_jcl_strut_chassis = Q_jcl_strut_chassis.segment(0, 3);
+        Eigen::VectorXd T_jcl_strut_chassis = 0.5*E(coord.P_rbl_upper_strut) * Q_jcl_strut_chassis.segment(3, 4) - skew(A(coord.P_rbl_upper_strut)*ubar_rbl_upper_strut_jcl_strut_chassis)*F_jcl_strut_chassis;
 
-// Joint Name : jcl_strut
-const Eigen::MatrixXd& Jac_jcl_strut = jacobian.block(56, 56, 4, 7);
-Eigen::VectorXd Q_jcl_strut = -Jac_jcl_strut.transpose() * coord.L_jcl_strut;
-const Eigen::VectorXd& F_jcl_strut = Q_jcl_strut.segment(0, 3);
-Eigen::VectorXd T_jcl_strut = 0.5*E(coord.P_rbl_upper_strut) * Q_jcl_strut.segment(3, 4) - skew(A(coord.P_rbl_upper_strut)*ubar_rbl_upper_strut_jcl_strut)*F_jcl_strut;
+        // Joint Name : jcl_strut
+        const Eigen::MatrixXd& Jac_jcl_strut = jacobian.block(56, 56, 4, 7);
+        Eigen::VectorXd Q_jcl_strut = -Jac_jcl_strut.transpose() * coord.L_jcl_strut;
+        const Eigen::VectorXd& F_jcl_strut = Q_jcl_strut.segment(0, 3);
+        Eigen::VectorXd T_jcl_strut = 0.5*E(coord.P_rbl_upper_strut) * Q_jcl_strut.segment(3, 4) - skew(A(coord.P_rbl_upper_strut)*ubar_rbl_upper_strut_jcl_strut)*F_jcl_strut;
 
-// Joint Name : jcr_strut_lca
-const Eigen::MatrixXd& Jac_jcr_strut_lca = jacobian.block(60, 63, 4, 7);
-Eigen::VectorXd Q_jcr_strut_lca = -Jac_jcr_strut_lca.transpose() * coord.L_jcr_strut_lca;
-const Eigen::VectorXd& F_jcr_strut_lca = Q_jcr_strut_lca.segment(0, 3);
-Eigen::VectorXd T_jcr_strut_lca = 0.5*E(coord.P_rbr_lower_strut) * Q_jcr_strut_lca.segment(3, 4) - skew(A(coord.P_rbr_lower_strut)*ubar_rbr_lower_strut_jcr_strut_lca)*F_jcr_strut_lca;
+        // Joint Name : jcr_strut_lca
+        const Eigen::MatrixXd& Jac_jcr_strut_lca = jacobian.block(60, 63, 4, 7);
+        Eigen::VectorXd Q_jcr_strut_lca = -Jac_jcr_strut_lca.transpose() * coord.L_jcr_strut_lca;
+        const Eigen::VectorXd& F_jcr_strut_lca = Q_jcr_strut_lca.segment(0, 3);
+        Eigen::VectorXd T_jcr_strut_lca = 0.5*E(coord.P_rbr_lower_strut) * Q_jcr_strut_lca.segment(3, 4) - skew(A(coord.P_rbr_lower_strut)*ubar_rbr_lower_strut_jcr_strut_lca)*F_jcr_strut_lca;
 
-// Joint Name : jcl_strut_lca
-const Eigen::MatrixXd& Jac_jcl_strut_lca = jacobian.block(64, 70, 4, 7);
-Eigen::VectorXd Q_jcl_strut_lca = -Jac_jcl_strut_lca.transpose() * coord.L_jcl_strut_lca;
-const Eigen::VectorXd& F_jcl_strut_lca = Q_jcl_strut_lca.segment(0, 3);
-Eigen::VectorXd T_jcl_strut_lca = 0.5*E(coord.P_rbl_lower_strut) * Q_jcl_strut_lca.segment(3, 4) - skew(A(coord.P_rbl_lower_strut)*ubar_rbl_lower_strut_jcl_strut_lca)*F_jcl_strut_lca;
+        // Joint Name : jcl_strut_lca
+        const Eigen::MatrixXd& Jac_jcl_strut_lca = jacobian.block(64, 70, 4, 7);
+        Eigen::VectorXd Q_jcl_strut_lca = -Jac_jcl_strut_lca.transpose() * coord.L_jcl_strut_lca;
+        const Eigen::VectorXd& F_jcl_strut_lca = Q_jcl_strut_lca.segment(0, 3);
+        Eigen::VectorXd T_jcl_strut_lca = 0.5*E(coord.P_rbl_lower_strut) * Q_jcl_strut_lca.segment(3, 4) - skew(A(coord.P_rbl_lower_strut)*ubar_rbl_lower_strut_jcl_strut_lca)*F_jcl_strut_lca;
 
-// Joint Name : jcr_tie_steering
-const Eigen::MatrixXd& Jac_jcr_tie_steering = jacobian.block(68, 77, 4, 7);
-Eigen::VectorXd Q_jcr_tie_steering = -Jac_jcr_tie_steering.transpose() * coord.L_jcr_tie_steering;
-const Eigen::VectorXd& F_jcr_tie_steering = Q_jcr_tie_steering.segment(0, 3);
-Eigen::VectorXd T_jcr_tie_steering = 0.5*E(coord.P_rbr_tie_rod) * Q_jcr_tie_steering.segment(3, 4) - skew(A(coord.P_rbr_tie_rod)*ubar_rbr_tie_rod_jcr_tie_steering)*F_jcr_tie_steering;
+        // Joint Name : jcr_tie_steering
+        const Eigen::MatrixXd& Jac_jcr_tie_steering = jacobian.block(68, 77, 4, 7);
+        Eigen::VectorXd Q_jcr_tie_steering = -Jac_jcr_tie_steering.transpose() * coord.L_jcr_tie_steering;
+        const Eigen::VectorXd& F_jcr_tie_steering = Q_jcr_tie_steering.segment(0, 3);
+        Eigen::VectorXd T_jcr_tie_steering = 0.5*E(coord.P_rbr_tie_rod) * Q_jcr_tie_steering.segment(3, 4) - skew(A(coord.P_rbr_tie_rod)*ubar_rbr_tie_rod_jcr_tie_steering)*F_jcr_tie_steering;
 
-// Joint Name : jcr_tie_upright
-const Eigen::MatrixXd& Jac_jcr_tie_upright = jacobian.block(72, 77, 3, 7);
-Eigen::VectorXd Q_jcr_tie_upright = -Jac_jcr_tie_upright.transpose() * coord.L_jcr_tie_upright;
-const Eigen::VectorXd& F_jcr_tie_upright = Q_jcr_tie_upright.segment(0, 3);
-Eigen::VectorXd T_jcr_tie_upright = 0.5*E(coord.P_rbr_tie_rod) * Q_jcr_tie_upright.segment(3, 4) - skew(A(coord.P_rbr_tie_rod)*ubar_rbr_tie_rod_jcr_tie_upright)*F_jcr_tie_upright;
+        // Joint Name : jcr_tie_upright
+        const Eigen::MatrixXd& Jac_jcr_tie_upright = jacobian.block(72, 77, 3, 7);
+        Eigen::VectorXd Q_jcr_tie_upright = -Jac_jcr_tie_upright.transpose() * coord.L_jcr_tie_upright;
+        const Eigen::VectorXd& F_jcr_tie_upright = Q_jcr_tie_upright.segment(0, 3);
+        Eigen::VectorXd T_jcr_tie_upright = 0.5*E(coord.P_rbr_tie_rod) * Q_jcr_tie_upright.segment(3, 4) - skew(A(coord.P_rbr_tie_rod)*ubar_rbr_tie_rod_jcr_tie_upright)*F_jcr_tie_upright;
 
-// Joint Name : jcl_tie_steering
-const Eigen::MatrixXd& Jac_jcl_tie_steering = jacobian.block(75, 84, 4, 7);
-Eigen::VectorXd Q_jcl_tie_steering = -Jac_jcl_tie_steering.transpose() * coord.L_jcl_tie_steering;
-const Eigen::VectorXd& F_jcl_tie_steering = Q_jcl_tie_steering.segment(0, 3);
-Eigen::VectorXd T_jcl_tie_steering = 0.5*E(coord.P_rbl_tie_rod) * Q_jcl_tie_steering.segment(3, 4) - skew(A(coord.P_rbl_tie_rod)*ubar_rbl_tie_rod_jcl_tie_steering)*F_jcl_tie_steering;
+        // Joint Name : jcl_tie_steering
+        const Eigen::MatrixXd& Jac_jcl_tie_steering = jacobian.block(75, 84, 4, 7);
+        Eigen::VectorXd Q_jcl_tie_steering = -Jac_jcl_tie_steering.transpose() * coord.L_jcl_tie_steering;
+        const Eigen::VectorXd& F_jcl_tie_steering = Q_jcl_tie_steering.segment(0, 3);
+        Eigen::VectorXd T_jcl_tie_steering = 0.5*E(coord.P_rbl_tie_rod) * Q_jcl_tie_steering.segment(3, 4) - skew(A(coord.P_rbl_tie_rod)*ubar_rbl_tie_rod_jcl_tie_steering)*F_jcl_tie_steering;
 
-// Joint Name : jcl_tie_upright
-const Eigen::MatrixXd& Jac_jcl_tie_upright = jacobian.block(79, 84, 3, 7);
-Eigen::VectorXd Q_jcl_tie_upright = -Jac_jcl_tie_upright.transpose() * coord.L_jcl_tie_upright;
-const Eigen::VectorXd& F_jcl_tie_upright = Q_jcl_tie_upright.segment(0, 3);
-Eigen::VectorXd T_jcl_tie_upright = 0.5*E(coord.P_rbl_tie_rod) * Q_jcl_tie_upright.segment(3, 4) - skew(A(coord.P_rbl_tie_rod)*ubar_rbl_tie_rod_jcl_tie_upright)*F_jcl_tie_upright;
+        // Joint Name : jcl_tie_upright
+        const Eigen::MatrixXd& Jac_jcl_tie_upright = jacobian.block(79, 84, 3, 7);
+        Eigen::VectorXd Q_jcl_tie_upright = -Jac_jcl_tie_upright.transpose() * coord.L_jcl_tie_upright;
+        const Eigen::VectorXd& F_jcl_tie_upright = Q_jcl_tie_upright.segment(0, 3);
+        Eigen::VectorXd T_jcl_tie_upright = 0.5*E(coord.P_rbl_tie_rod) * Q_jcl_tie_upright.segment(3, 4) - skew(A(coord.P_rbl_tie_rod)*ubar_rbl_tie_rod_jcl_tie_upright)*F_jcl_tie_upright;
 
-// Joint Name : mcr_wheel_travel
-const Eigen::MatrixXd& Jac_mcr_wheel_travel = jacobian.block(82, 91, 1, 7);
-Eigen::VectorXd Q_mcr_wheel_travel = -Jac_mcr_wheel_travel.transpose() * coord.L_mcr_wheel_travel;
-const Eigen::VectorXd& F_mcr_wheel_travel = Q_mcr_wheel_travel.segment(0, 3);
-Eigen::VectorXd T_mcr_wheel_travel = 0.5*E(coord.P_rbr_hub) * Q_mcr_wheel_travel.segment(3, 4) - skew(A(coord.P_rbr_hub)*ubar_rbr_hub_mcr_wheel_travel)*F_mcr_wheel_travel;
+        // Joint Name : mcr_wheel_travel
+        const Eigen::MatrixXd& Jac_mcr_wheel_travel = jacobian.block(82, 91, 1, 7);
+        Eigen::VectorXd Q_mcr_wheel_travel = -Jac_mcr_wheel_travel.transpose() * coord.L_mcr_wheel_travel;
+        const Eigen::VectorXd& F_mcr_wheel_travel = Q_mcr_wheel_travel.segment(0, 3);
+        Eigen::VectorXd T_mcr_wheel_travel = 0.5*E(coord.P_rbr_hub) * Q_mcr_wheel_travel.segment(3, 4) - skew(A(coord.P_rbr_hub)*ubar_rbr_hub_mcr_wheel_travel)*F_mcr_wheel_travel;
 
-// Joint Name : mcl_wheel_travel
-const Eigen::MatrixXd& Jac_mcl_wheel_travel = jacobian.block(83, 98, 1, 7);
-Eigen::VectorXd Q_mcl_wheel_travel = -Jac_mcl_wheel_travel.transpose() * coord.L_mcl_wheel_travel;
-const Eigen::VectorXd& F_mcl_wheel_travel = Q_mcl_wheel_travel.segment(0, 3);
-Eigen::VectorXd T_mcl_wheel_travel = 0.5*E(coord.P_rbl_hub) * Q_mcl_wheel_travel.segment(3, 4) - skew(A(coord.P_rbl_hub)*ubar_rbl_hub_mcl_wheel_travel)*F_mcl_wheel_travel;
+        // Joint Name : mcl_wheel_travel
+        const Eigen::MatrixXd& Jac_mcl_wheel_travel = jacobian.block(83, 98, 1, 7);
+        Eigen::VectorXd Q_mcl_wheel_travel = -Jac_mcl_wheel_travel.transpose() * coord.L_mcl_wheel_travel;
+        const Eigen::VectorXd& F_mcl_wheel_travel = Q_mcl_wheel_travel.segment(0, 3);
+        Eigen::VectorXd T_mcl_wheel_travel = 0.5*E(coord.P_rbl_hub) * Q_mcl_wheel_travel.segment(3, 4) - skew(A(coord.P_rbl_hub)*ubar_rbl_hub_mcl_wheel_travel)*F_mcl_wheel_travel;
 
-    //rct_return;
+    rct_eq << F_jcr_uca_chassis,
+        T_jcr_uca_chassis,
+        F_jcr_uca_upright,
+        T_jcr_uca_upright,
+        F_jcl_uca_chassis,
+        T_jcl_uca_chassis,
+        F_jcl_uca_upright,
+        T_jcl_uca_upright,
+        F_jcr_lca_chassis,
+        T_jcr_lca_chassis,
+        F_jcr_lca_upright,
+        T_jcr_lca_upright,
+        F_jcl_lca_chassis,
+        T_jcl_lca_chassis,
+        F_jcl_lca_upright,
+        T_jcl_lca_upright,
+        F_jcr_hub_bearing,
+        T_jcr_hub_bearing,
+        F_mcr_wheel_lock,
+        T_mcr_wheel_lock,
+        F_jcl_hub_bearing,
+        T_jcl_hub_bearing,
+        F_mcl_wheel_lock,
+        T_mcl_wheel_lock,
+        F_jcr_strut_chassis,
+        T_jcr_strut_chassis,
+        F_jcr_strut,
+        T_jcr_strut,
+        F_jcl_strut_chassis,
+        T_jcl_strut_chassis,
+        F_jcl_strut,
+        T_jcl_strut,
+        F_jcr_strut_lca,
+        T_jcr_strut_lca,
+        F_jcl_strut_lca,
+        T_jcl_strut_lca,
+        F_jcr_tie_steering,
+        T_jcr_tie_steering,
+        F_jcr_tie_upright,
+        T_jcr_tie_upright,
+        F_jcl_tie_steering,
+        T_jcl_tie_steering,
+        F_jcl_tie_upright,
+        T_jcl_tie_upright,
+        F_mcr_wheel_travel,
+        T_mcr_wheel_travel,
+        F_mcl_wheel_travel,
+        T_mcl_wheel_travel;;
 };

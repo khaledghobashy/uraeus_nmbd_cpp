@@ -100,7 +100,8 @@ public:
     static const int nc = $nc;
     static const int nrows = $nve;
     static const int ncols = 2 * $nodes;
-    std::vector<std::string> names $bodies_names;
+    std::vector<std::string> bodies_names $bodies_names;
+    std::vector<std::string> joints_names $joints_names;
 
 public:
     // Topology Constructors.
@@ -130,6 +131,7 @@ public:
     Eigen::VectorXd vel_eq;
     Eigen::VectorXd acc_eq;
     Eigen::VectorXd frc_eq;
+    Eigen::VectorXd rct_eq;
 
     Eigen::VectorXd jac_rows;
     Eigen::VectorXd jac_cols;

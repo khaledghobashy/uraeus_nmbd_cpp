@@ -72,6 +72,8 @@ class abstract_generator(object):
                 
         self.bodies = self.mbs.bodies
 
+        self.joints_names = [edge[-1] for edge in self.mbs.constraints_graph.edges(data='name')]
+
     @staticmethod
     def _insert_string(string):
         def inserter(x): return string + x.group(0)
@@ -117,7 +119,10 @@ class template_codegen(abstract_generator):
 
         bodies_names = ', '.join(['"%s"'%i for i in self.bodies])
         bodies_names = textwrap.indent('{%s}'%bodies_names, 4*' ').lstrip()
-        
+
+        joints_names = ', '.join(['"%s"'%i for i in self.joints_names])
+        joints_names = textwrap.indent('{%s}'%joints_names, 4*' ').lstrip()
+
         coordinates = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
                                  self.gen_coordinates_exp])
         coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
@@ -147,6 +152,7 @@ class template_codegen(abstract_generator):
             primary_arguments = primary_aruments,
             bodies = bodies_indices,
             bodies_names = bodies_names,
+            joints_names = joints_names,
             coordinates = coordinates,
             velocities = velocities,
             accelerations = accelerations,
@@ -181,15 +187,16 @@ class template_codegen(abstract_generator):
         mas_replacements, mas_expressions = self.get_mas_equations()
         frc_replacements, frc_expressions = self.get_frc_equations()
 
-        rct_expressions = self.get_reactions_equations()
-        rct_expressions_2 = self.get_reactions_equations2()
+        #rct_expressions = self.get_reactions_equations()
+        rct_expressions2, rct_return2 = self.get_reactions_equations2()
 
         template_text = template_text.safe_substitute(
             file_name = file_name,
             n = self.mbs.n,
+            nnz = nnz,
+            n_joints = len(self.joints_names),
             jac_rows = jac_rows,
             jac_cols = jac_cols,
-            nnz = nnz,
             indicies_map = indicies_map,
             virtuals = virtuals,
             primary_arguments = primary_arguments,
@@ -209,9 +216,10 @@ class template_codegen(abstract_generator):
             mas_expressions = mas_expressions,
             frc_replacements = frc_replacements,
             frc_expressions = frc_expressions,
-            rct_expressions = '//',#rct_expressions,
-            rct_return = 'rct_return',
-            rct_expressions_2 = rct_expressions_2)
+            rct_expressions1 = '//rct_expressions',
+            rct_return1 = '//rct_return',
+            rct_expressions2 = rct_expressions2,
+            rct_return2 = rct_return2)
 
         return template_text
     
@@ -430,6 +438,7 @@ class template_codegen(abstract_generator):
     def get_reactions_equations2(self):
 
         expressions = []
+        returns = []
         
         row_offset = 0
         for edge in self.mbs.constraints_graph.edges(data=True):
@@ -453,9 +462,17 @@ class template_codegen(abstract_generator):
             text = '\n'.join(text)        
             expressions.append(text)
             row_offset += nc
+
+            returns.append(f'F_{joint_name}')
+            returns.append(f'T_{joint_name}')
         
         expressions_text = '\n\n'.join(expressions)
-        return expressions_text
+        expressions_text = textwrap.indent(expressions_text, 4*' ').lstrip()
+
+        reactions_return = ',\n'.join(returns) + ';'
+        reactions_return = textwrap.indent(reactions_return, 8*' ').lstrip()
+
+        return expressions_text, reactions_return
 
 
 

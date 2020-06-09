@@ -10,6 +10,8 @@
 #include "helpers.hpp"
 #include "utilities.hpp"
 
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", ",");
+
 
 // Declaring and Implementing the Solver class as a template class.
 // Type T should be any Topology class type.
@@ -35,6 +37,7 @@ public:
     std::vector<Eigen::VectorXd> vel_history;
     std::vector<Eigen::VectorXd> acc_history;
     std::vector<Eigen::VectorXd> lgr_history;
+    std::vector<Eigen::VectorXd> rct_history;
 
     std::vector<int> jac_rows;
     std::vector<int> jac_cols;
@@ -56,6 +59,7 @@ public:
     Eigen::VectorXd eval_acc_eq();
     Eigen::VectorXd eval_frc_eq();
 
+    void eval_rct_eq();
     void eval_jac_eq();
     void eval_mas_eq();
 
@@ -65,6 +69,7 @@ public:
     void Solve();
 
     void ExportResultsCSV(std::string location, std::string name, int id);
+    void ExportReactionsResults(std::string location, std::string name);
 
 private:
     std::map<int, std::vector<Eigen::VectorXd>*> results;
@@ -94,6 +99,7 @@ Solver<T>::Solver()
     results_names[1] = "Velocities";
     results_names[2] = "Accelerations";
     results_names[3] = "LagrnageMultipliers";
+    results_names[4] = "Constraints";
 };
 
 
@@ -170,6 +176,12 @@ void Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();    
     SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
+};
+
+template<class T>
+void Solver<T>::eval_rct_eq()
+{   
+    model.eval_reactions(Jacobian);    
 };
 
 template<class T>
@@ -299,26 +311,27 @@ void Solver<T>::Solve()
         qdd << SparseSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
-        model.eval_reactions(Jacobian);
+        eval_rct_eq();
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);
         acc_history.emplace_back(qdd);
         lgr_history.emplace_back(lgr);
+        rct_history.emplace_back(model.rct_eq);
+
     };
 
     results[0] = &pos_history;
     results[1] = &vel_history;
     results[2] = &acc_history;
     results[3] = &lgr_history;
+    results[4] = &rct_history;
 
     std::cout << "\n";
     std::cout << "Finished Solver ..." << "\n";
 
 };
 
-
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", ",");
 
 template<class T>
 void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
@@ -367,3 +380,50 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     
 };
 
+template<class T>
+void Solver<T>::ExportReactionsResults(std::string location, std::string name)
+{
+    // declaring and initializing the needed variables
+    //std::cout << "Getting reactions Data!\n\n";
+    auto& data = *(results[4]);
+    std::ofstream results_file;
+
+    //std::cout << "Setting reactions' indecies!\n\n";
+    // Creating the system indicies string to be used as the fisrt line
+    // in the .csv file
+    std::string indicies = "";
+    std::vector<std::string> coordinates{"x", "y", "z"};
+    for (const auto& joint_name : model.joints_names)
+    {
+        for (const auto& coordinate : coordinates)
+        {
+          indicies += "F_" + joint_name + "." + coordinate + "," ;
+        };
+
+        for (const auto& coordinate : coordinates)
+        {
+          indicies += "T_" + joint_name + "." + coordinate + "," ;
+        };    
+    };
+
+    // Opening the file as a .csv file.
+    results_file.open (location + name + ".csv");
+    
+    // Inserting the first line to be the indicies of the system.
+    results_file << ", " + indicies + "time\n";
+
+    //std::cout << "Looping over the results and writing each line to the .csv file.!\n\n";
+    // Looping over the results and writing each line to the .csv file.
+    int i = 0;
+    for (auto& x : data)
+    {
+        results_file << std::to_string(i) + ", ";
+        results_file << x.transpose().format(CSVFormat) ;
+        results_file << std::to_string(time_array(i)) + "\n";
+        i += 1;
+    };
+
+    results_file.close();
+    std::cout << "\n" << name << " results saved as : " << location + name + ".csv" << "\n";
+    
+};
