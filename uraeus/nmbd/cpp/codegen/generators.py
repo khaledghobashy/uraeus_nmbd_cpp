@@ -181,7 +181,7 @@ class template_codegen(abstract_generator):
         mas_replacements, mas_expressions = self.get_mas_equations()
         frc_replacements, frc_expressions = self.get_frc_equations()
 
-        rct_expressions, rct_return = self.get_reactions_equations()
+        rct_expressions = self.get_reactions_equations()
 
         template_text = template_text.safe_substitute(
             file_name = file_name,
@@ -208,7 +208,7 @@ class template_codegen(abstract_generator):
             mas_expressions = mas_expressions,
             frc_replacements = frc_replacements,
             frc_expressions = frc_expressions,
-            rct_expressions = 'rct_expressions',
+            rct_expressions = rct_expressions,
             rct_return = 'rct_return')
 
         return template_text
@@ -357,7 +357,7 @@ class template_codegen(abstract_generator):
 
         return num_constants_text, sym_constants_text
     
-    def get_reactions_equations(self):
+    def get_reactions_equations1(self):
         
         indent = 4*' '
         p = self.printer
@@ -388,6 +388,42 @@ class template_codegen(abstract_generator):
         reactions = '{%s}'%reactions
         
         return equations_text, reactions
+
+    def get_reactions_equations(self):
+
+        expressions = []
+        
+        offset = 0
+        for edge in self.mbs.constraints_graph.edges(data=True):
+            nc = edge[-1]['nc']
+            nve = edge[-1]['nve']
+            joint_name = edge[-1]['name']
+            body_name = edge[0]
+            def_locs = edge[-1]['class'].def_locs
+            
+            R_exp = [f'jac_eq[%s]'%(4*i + offset) for i in range(nve)]
+            R_blocks_text = ', '.join(R_exp) + ';'
+            P_exp = [f'jac_eq[%s]'%(4*i + offset + 1) for i in range(nve)]
+            P_blocks_text = ', '.join(P_exp) + ';'
+            
+            text = [
+            f'// Joint Name : {joint_name}',
+            f'Eigen::MatrixXd R_jac_{joint_name}({nc}, 3);',
+            f'Eigen::MatrixXd P_jac_{joint_name}({nc}, 4);',
+            f'R_jac_{joint_name} << %s'%R_blocks_text,
+            f'P_jac_{joint_name} << %s'%P_blocks_text,
+            f'Eigen::VectorXd F_{joint_name} = -R_jac_{joint_name}.transpose() * coord.L_{joint_name};',
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name});',
+            ]
+            
+            text = '\n'.join(text)        
+            expressions.append(text)
+            offset += nve*4
+        
+        expressions_text = '\n\n'.join(expressions)
+        return expressions_text
+
 
 
 ###############################################################################

@@ -176,7 +176,7 @@ void Topology::eval_mas_eq()
 
 void Topology::eval_reactions()
 {
-    //$rct_expressions
+    $rct_expressions
 
     //$rct_return;
 };

@@ -182,10 +182,14 @@ template<class T>
 void Solver<T>::solve_lgr_multipliers()
 {
     eval_mas_eq();
-    auto&& rhs = eval_frc_eq() - (MassMatrix * qdd);
+    Eigen::VectorXd ext_frc = eval_frc_eq();
+    Eigen::VectorXd inertia = MassMatrix * qdd;
+    Eigen::VectorXd&& rhs = ext_frc - inertia;
+    //std::cout << "RHS = \n" << rhs << "\n\n";
     lgr << SparseSolver.solve(rhs);
-    //std::cout << inertia_forces.transpose() << "\n";
-    //std::cout << lgr.transpose() << "\n";
+    //std::cout << (MassMatrix * qdd).transpose() << "\n\n";
+    //std::cout << eval_frc_eq().transpose() << "\n\n";
+    //std::cout << "Lgr = \n" << lgr.transpose() << "\n\n";
 };
 
 template<class T>
@@ -293,6 +297,7 @@ void Solver<T>::Solve()
         qdd << SparseSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
+        model.eval_reactions();
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);
