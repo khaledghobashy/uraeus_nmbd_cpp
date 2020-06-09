@@ -443,9 +443,9 @@ class template_codegen(abstract_generator):
 
             text = [
             f'// Joint Name : {joint_name}',
-            f'const auto& Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
+            f'const Eigen::MatrixXd& Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
             f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'const auto& F_{joint_name} = Q_{joint_name}.segment(0, 3);',
+            f'const Eigen::VectorXd& F_{joint_name} = Q_{joint_name}.segment(0, 3);',
             f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
             ]
