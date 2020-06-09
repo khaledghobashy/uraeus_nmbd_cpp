@@ -182,6 +182,7 @@ class template_codegen(abstract_generator):
         frc_replacements, frc_expressions = self.get_frc_equations()
 
         rct_expressions = self.get_reactions_equations()
+        rct_expressions_2 = self.get_reactions_equations2()
 
         template_text = template_text.safe_substitute(
             file_name = file_name,
@@ -208,8 +209,9 @@ class template_codegen(abstract_generator):
             mas_expressions = mas_expressions,
             frc_replacements = frc_replacements,
             frc_expressions = frc_expressions,
-            rct_expressions = rct_expressions,
-            rct_return = 'rct_return')
+            rct_expressions = '//',#rct_expressions,
+            rct_return = 'rct_return',
+            rct_expressions_2 = rct_expressions_2)
 
         return template_text
     
@@ -420,6 +422,37 @@ class template_codegen(abstract_generator):
             text = '\n'.join(text)        
             expressions.append(text)
             offset += nve*4
+        
+        expressions_text = '\n\n'.join(expressions)
+        return expressions_text
+
+
+    def get_reactions_equations2(self):
+
+        expressions = []
+        
+        row_offset = 0
+        for edge in self.mbs.constraints_graph.edges(data=True):
+            nc = edge[-1]['nc']
+            nve = edge[-1]['nve']
+            joint_name = edge[-1]['name']
+            body_name = edge[0]
+            def_locs = edge[-1]['class'].def_locs
+
+            col_offset = self.mbs.nodes_indicies[body_name] * 7
+
+            text = [
+            f'// Joint Name : {joint_name}',
+            f'const auto& Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
+            f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
+            f'const auto& F_{joint_name} = Q_{joint_name}.segment(0, 3);',
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
+            ]
+            
+            text = '\n'.join(text)        
+            expressions.append(text)
+            row_offset += nc
         
         expressions_text = '\n\n'.join(expressions)
         return expressions_text

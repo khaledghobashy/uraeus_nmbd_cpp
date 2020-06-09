@@ -5,6 +5,9 @@
 //                     Configuration Class Implementation
 // ============================================================================
 
+typedef Eigen::SparseMatrix<double, Eigen::ColMajor> SparseBlock;
+
+
 Configuration::Configuration()
     :
         ConfigInputs()
@@ -177,6 +180,13 @@ void Topology::eval_mas_eq()
 void Topology::eval_reactions()
 {
     $rct_expressions
+
+    //$rct_return;
+};
+
+void Topology::eval_reactions(Eigen::Ref<SparseBlock> jacobian)
+{
+    $rct_expressions_2
 
     //$rct_return;
 };

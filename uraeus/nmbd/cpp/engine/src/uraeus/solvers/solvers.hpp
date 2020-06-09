@@ -22,6 +22,9 @@ public:
     Eigen::VectorXd qdd;
     Eigen::VectorXd lgr;
 
+    SparseBlock Jacobian;
+    SparseBlock MassMatrix;
+
     T model;
     
     double t;
@@ -36,9 +39,6 @@ public:
     std::vector<int> jac_rows;
     std::vector<int> jac_cols;
     std::vector<int> mas_cols;
-
-    SparseBlock Jacobian;
-    SparseBlock MassMatrix;
 
     Eigen::SparseLU<SparseBlock> SparseSolver;
 
@@ -83,10 +83,12 @@ Solver<T>::Solver()
         qd(T::n),
         qdd(T::n),
         lgr(T::nc),
+        Jacobian(T::nc, T::n),
+        MassMatrix(T::n, T::n),
         model("", q, qd, qdd, lgr)
 {
-    Jacobian.resize(model.nc, model.n);
-    MassMatrix.resize(model.n, model.n);
+    //Jacobian.resize(model.nc, model.n);
+    //MassMatrix.resize(model.n, model.n);
 
     results_names[0] = "Positions";
     results_names[1] = "Velocities";
@@ -297,7 +299,7 @@ void Solver<T>::Solve()
         qdd << SparseSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
-        model.eval_reactions();
+        model.eval_reactions(Jacobian);
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);
