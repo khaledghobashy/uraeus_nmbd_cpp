@@ -16,11 +16,11 @@
 struct geometry
 {
 public:
-    Eigen::Vector3d R = {0, 0, 0};
-    Eigen::Vector4d P = {1, 0, 0, 0};
-    Eigen::Matrix3d J ;
-    Eigen::Matrix3d I ;
-    double m = 0;
+    geometry();
+    Eigen::Vector3d R;
+    Eigen::Vector4d P;
+    Eigen::Matrix3d J;
+    double m;
 };
 
 geometry cylinder_geometry(Eigen::Vector3d& p1, Eigen::Vector3d& p2, double& ro, double ri = 0);

@@ -2,27 +2,48 @@
 #include "geometries.hpp"
 
 
+geometry::geometry()
+    :
+        R(0, 0, 0),
+        P(1, 0, 0, 0),
+        J(),
+        m(0)
+    {
+        J << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+    };
+
+
+
 geometry cylinder_geometry(Eigen::Vector3d& p1, Eigen::Vector3d& p2, double& ro, double ri)
 {   
+
+    std::cout << "Radius = " << ro << "\n";
     geometry geo;
 
     Eigen::Vector3d axis = p2 - p1 ;
     auto frame = triad(axis);
-    
-    const double l = axis.norm();
-    const double vol = (22./7)*(std::pow(ro, 2) - std::pow(ri,2)) * l * 1e-3;
+    const double length = axis.norm();
 
-    double m = 7.9/vol ;
-    const double Jzz = (m/2)*(std::pow(ro,2) + std::pow(ri,2));
-    const double Jyy = (m/12)*(3*(std::pow(ro,2) + std::pow(ri,2)) + std::pow(l,2));
+    const double density = 7.9*1e-3;
+    
+    const double vol = (22./7) * (std::pow(ro, 2) - std::pow(ri, 2)) * length;
+
+    double m = density * vol ;
+    std::cout << "length = " << length << "\n";
+    std::cout << "mass = " << m << "\n";
+    std::cout << "vol = " << vol << "\n";
+
+    const double Jzz = (m/2) * (std::pow(ro, 2) + std::pow(ri, 2));
+    const double Jyy = (m/12) * (3 * (std::pow(ro, 2) + std::pow(ri, 2)) + std::pow(length, 2));
     const double Jxx = Jyy ;
 
     Eigen::Vector4d P = A2P(frame);
     Eigen::DiagonalMatrix<double, 3> J(Jxx, Jyy, Jzz);
 
-    geo.R = centered({p1, p2});
+    geo.J = A(P) * J * A(P).transpose() ;
     geo.P << 1, 0, 0, 0 ;
-    geo.J = A(P).transpose() * J * A(P) ;
+    
+    geo.R = centered({p1, p2});
     geo.m = m ;
 
     return geo;
@@ -46,31 +67,49 @@ geometry triangular_prism(Eigen::Vector3d& p1, Eigen::Vector3d& p2, Eigen::Vecto
 
     pr = (l1 + l2 + l3) / 2 ;
 
+    // The normal height of the vertix from the base.
     double cos_theta = v1.transpose() * v2;
     cos_theta = cos_theta / (l1*l2) ;
     theta = std::acos(cos_theta);
     height = l2 * std::sin(theta);
     area = std::sqrt(pr*(pr - l1)*(pr-l2)*(pr-l3)) ;
-    volume = area * height ;
-    density = 7.9 ;
+    volume = area * thickness ;
+    density = 7.9*1e-3;
 
+    // Creating a centroidal reference frame with z-axis normal to triangle
+    // plane and x-axis oriented with the selected base vector v1.
     Eigen::Vector3d v = oriented({p1, p2, p3});
     Eigen::Matrix3d frame = triad(v, v1) ;
 
-    double a = v2.transpose() * v1 ;
-
+    // Calculating the principle inertia properties "moment of areas" at the
+    // geometry centroid.
+    double a = v2.transpose() * (v1/l1) ;
     double Ixc = (l1*std::pow(height,3)) / 36 ;
     double Iyc = ((std::pow(l1,3)*height)-(std::pow(l1,2)*height*a)+(l1*height*std::pow(a,2))) / 36 ;
     double Izc = ((std::pow(l1,3)*height)-(std::pow(l1,2)*height*a)+(l1*height*std::pow(a,2))+(l1*std::pow(height,3))) / 36 ;
 
-    double mass = density * volume * 1e-3;
+
+    // Evaluating the moments of inertia of the side-walls
+    double Ix_n = (1/12) * std::pow(thickness, 3) * l1;
+    double Iy_n = (1/12) * std::pow(thickness, 3) * height;
+
+    // Evaluating mass
+    double mass = density * volume;
+
+    // Calculating the total moment of inertia from the moment of areas
+    double Ix = ((mass/area) * Ixc + ((mass/thickness*l1) * Ix_n));
+    double Iy = ((mass/area) * Iyc + ((mass/thickness*height) * Iy_n));
+    double Iz = ((mass/area) * Izc);
+
+    // Evaluate Geometry properties
     Eigen::Vector4d P = A2P(frame);
-    Eigen::DiagonalMatrix<double, 3> J(Ixc, Iyc, Izc);
-    J = mass*J;
-    
-    geo.R = centered({p1, p2, p3});
+    Eigen::DiagonalMatrix<double, 3> J(Ix, Iy, Iz);
+
+    //  Transforming Inertia to the Global Frame
+    geo.J = A(P) * J * A(P).transpose() ;
     geo.P << 1, 0, 0, 0 ;
-    geo.J = A(P).transpose() * J * A(P) ;
+
+    geo.R = centered({p1, p2, p3});
     geo.m = mass ;
 
     return geo;
@@ -108,24 +147,26 @@ geometry composite_geometry(std::vector<geometry>& geometries)
     const auto& I = Eigen::MatrixXd::Identity(3, 3);
 
     // composite body total mass as the sum of it's subcomponents
-    for (auto g : geometries) {m += g.m;};
+    for (const auto& g : geometries) {m += g.m;};
     //std::cout << "Geometry mass = " << m << std::endl;
 
     // center of mass vector relative to the origin
-    for (auto g : geometries)
+    for (const auto& g : geometries)
     { 
         R += (1/m) * (g.m * g.R);
         //std::cout << "R = " << R << std::endl;
     };
     //std::cout << "Geometry R = " << R << std::endl;
 
-    for (auto g : geometries)
+    std::cout << "J = \n" << J << "\n";
+    for (const auto& g : geometries)
     {
-        const auto& d = g.R - R;
+        auto d = g.R - R;
         J += (
                 A(g.P) * (g.J) * (A(g.P).transpose())
               + g.m * (d.squaredNorm()*I - d*d.transpose())
              );
+        std::cout << "J = \n" << J << "\n";
 
     };
     
