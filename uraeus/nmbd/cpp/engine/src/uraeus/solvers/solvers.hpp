@@ -70,6 +70,8 @@ public:
 
     void ExportResultsCSV(std::string location, std::string name, int id);
     void ExportReactionsResults(std::string location, std::string name);
+    void ExportLagrangeMultipliers(std::string location, std::string name);
+
 
 private:
     std::map<int, std::vector<Eigen::VectorXd>*> results;
@@ -199,11 +201,10 @@ void Solver<T>::solve_lgr_multipliers()
     Eigen::VectorXd ext_frc = eval_frc_eq();
     Eigen::VectorXd inertia = MassMatrix * qdd;
     Eigen::VectorXd&& rhs = ext_frc - inertia;
-    //std::cout << "RHS = \n" << rhs << "\n\n";
+    SparseSolver.compute(Jacobian.transpose());
     lgr << SparseSolver.solve(rhs);
     //std::cout << (MassMatrix * qdd).transpose() << "\n\n";
     //std::cout << eval_frc_eq().transpose() << "\n\n";
-    //std::cout << "Lgr = \n" << lgr.transpose() << "\n\n";
 };
 
 template<class T>
@@ -291,6 +292,11 @@ void Solver<T>::Solve()
     //std::cout << "Solving for Accelerations" << "\n";
     qdd << SparseSolver.solve(-eval_acc_eq());
     acc_history.emplace_back(qdd);
+
+    solve_lgr_multipliers();
+    eval_rct_eq();
+    lgr_history.emplace_back(lgr);
+    rct_history.emplace_back(model.rct_eq);
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
@@ -410,7 +416,7 @@ void Solver<T>::ExportReactionsResults(std::string location, std::string name)
     results_file.open (location + name + ".csv");
     
     // Inserting the first line to be the indicies of the system.
-    results_file << ", " + indicies + "time\n";
+    results_file << "," + indicies + "time\n";
 
     //std::cout << "Looping over the results and writing each line to the .csv file.!\n\n";
     // Looping over the results and writing each line to the .csv file.
@@ -427,3 +433,32 @@ void Solver<T>::ExportReactionsResults(std::string location, std::string name)
     std::cout << "\n" << name << " results saved as : " << location + name + ".csv" << "\n";
     
 };
+
+template<class T>
+void Solver<T>::ExportLagrangeMultipliers(std::string location, std::string name)
+{
+    // declaring and initializing the needed variables
+    //std::cout << "Getting reactions Data!\n\n";
+    auto& data = *(results[3]);
+    std::ofstream results_file;
+
+
+    // Opening the file as a .csv file.
+    results_file.open (location + name + ".csv");
+    
+    //std::cout << "Looping over the results and writing each line to the .csv file.!\n\n";
+    // Looping over the results and writing each line to the .csv file.
+    int i = 0;
+    for (auto& x : data)
+    {
+        results_file << std::to_string(i) + ", ";
+        results_file << x.transpose().format(CSVFormat) ;
+        results_file << std::to_string(time_array(i)) + "\n";
+        i += 1;
+    };
+
+    results_file.close();
+    std::cout << "\n" << name << " results saved as : " << location + name + ".csv" << "\n";
+    
+};
+
