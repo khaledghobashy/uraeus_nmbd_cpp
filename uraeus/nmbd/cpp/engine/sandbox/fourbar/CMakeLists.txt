@@ -10,7 +10,7 @@ target_link_libraries(fourbar_lib PRIVATE helpers)
 target_link_libraries(fourbar_lib PRIVATE utilities)
 
 
-add_executable(fourbar fourbar.cpp)
+add_executable(fourbar main.cpp)
 
 target_link_libraries(fourbar PRIVATE fourbar_lib)
 target_link_libraries(fourbar PRIVATE configuration)

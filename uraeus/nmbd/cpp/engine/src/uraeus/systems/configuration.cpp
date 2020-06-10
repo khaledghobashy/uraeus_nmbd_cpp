@@ -286,8 +286,11 @@ void ConfigurationAssembler::Cylinder_Geometry(rapidjson::Value::ConstMemberIter
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
 
-    //std::cout << geo.R << "\n\n";
-    //std::cout << geo.J << "\n\n";
+    std::cout << elementName << "\n";
+    std::cout << geo.R << "\n";
+    std::cout << geo.P << "\n";
+    std::cout << geo.m << "\n";
+    std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
@@ -300,7 +303,7 @@ void ConfigurationAssembler::Triangular_Prism(rapidjson::Value::ConstMemberItera
     const rapidjson::Value& value = item->value["args"];
     std::string elementName = item->name.GetString();
 
-    //std::cout << "triangular_prism" << "\n";
+    std::cout << "triangular_prism" << "\n";
     //printf("Type of member %s is %s\n", elementName, elementType);
 
     std::string p1_name = value[0].GetString();
@@ -327,7 +330,11 @@ void ConfigurationAssembler::Triangular_Prism(rapidjson::Value::ConstMemberItera
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
 
-    //std::cout << geo.R << "\n\n";
+    std::cout << elementName << "\n";
+    std::cout << geo.R << "\n";
+    std::cout << geo.P << "\n";
+    std::cout << geo.m << "\n";
+    std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
@@ -340,7 +347,7 @@ void ConfigurationAssembler::Composite_Geometry(rapidjson::Value::ConstMemberIte
     const rapidjson::Value& value = item->value["args"];
     std::string elementName = item->name.GetString();
 
-    //std::cout << "Composite_Geometry" << "\n";
+    std::cout << "Composite_Geometry" << "\n";
 
     std::vector<geometry> geometries;
     for (unsigned int j=0; j < value.Size(); j++)
@@ -360,7 +367,11 @@ void ConfigurationAssembler::Composite_Geometry(rapidjson::Value::ConstMemberIte
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
     
-    //std::cout << geo.R << "\n\n";
+    std::cout << elementName << "\n";
+    std::cout << geo.R << "\n";
+    std::cout << geo.P << "\n";
+    std::cout << geo.m << "\n";
+    std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
