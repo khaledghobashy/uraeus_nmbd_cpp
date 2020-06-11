@@ -1,22 +1,39 @@
+# ----------------------------------------------------
+# project directories
+# ----------------------------------------------------
 **/.spyproject
 **/.ipynb_checkpoints
+**/*.vscode
 **/__pycache__
+
+# ----------------------------------------------------
+# common build extensions
+# ----------------------------------------------------
 **/*.cmd
 **/*.o
+**/*.obj
+**/*.lib
 **/*.stpl
-**/*.vscode
+**/*.pyd
+**/*.so
+
+# ----------------------------------------------------
+# build directories
+# ----------------------------------------------------
 **/build
 **/Debug
 **/Release
-/examples/**/numenv
-/examples/**/*.stpl
-/examples/**/csv_files
-/examples/**/results
-/examples/**/config_inputs
-/tests
+
+# ----------------------------------------------------
+# sandbox directory
+# ----------------------------------------------------
 /uraeus/nmbd/cpp/engine/sandbox
 
+# ----------------------------------------------------
+# Egg metadata
+# ----------------------------------------------------
+*.egg-info
+*.egg
 build
 dist
-# Egg metadata
-*.egg-info
+sdist
