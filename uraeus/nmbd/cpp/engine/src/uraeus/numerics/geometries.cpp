@@ -1,7 +1,27 @@
+/*
+============================================================================
+                            uraeus.nmbd.cpp
+============================================================================
 
+Use of this source code is governed by a BSD-style license that can be found
+in the LICENSE file at the top level of the distribution.
+
+Authors:
+    - Khaled Ghobashy
+
+
+============================================================================
+                                Summary
+============================================================================
+
+*/
+
+// Local includes
 #include "geometries.hpp"
 
 
+// geometry class default constructor with initializer list
+// --------------------------------------------------------
 geometry::geometry()
     :
         R(0, 0, 0),
@@ -13,11 +33,11 @@ geometry::geometry()
     };
 
 
-
+// cylinder geometry function returning a geometry object
+// ------------------------------------------------------
 geometry cylinder_geometry(Eigen::Vector3d& p1, Eigen::Vector3d& p2, double& ro, double ri)
 {   
 
-    std::cout << "Radius = " << ro << "\n";
     geometry geo;
 
     Eigen::Vector3d axis = p2 - p1 ;
@@ -29,9 +49,6 @@ geometry cylinder_geometry(Eigen::Vector3d& p1, Eigen::Vector3d& p2, double& ro,
     const double vol = (22./7) * (std::pow(ro, 2) - std::pow(ri, 2)) * length;
 
     double m = density * vol ;
-    std::cout << "length = " << length << "\n";
-    std::cout << "mass = " << m << "\n";
-    std::cout << "vol = " << vol << "\n";
 
     const double Jzz = (m/2) * (std::pow(ro, 2) + std::pow(ri, 2));
     const double Jyy = (m/12) * (3 * (std::pow(ro, 2) + std::pow(ri, 2)) + std::pow(length, 2));
@@ -51,6 +68,8 @@ geometry cylinder_geometry(Eigen::Vector3d& p1, Eigen::Vector3d& p2, double& ro,
 };
 
 
+// triangular_prism geometry function returning a geometry object
+// --------------------------------------------------------------
 geometry triangular_prism(Eigen::Vector3d& p1, Eigen::Vector3d& p2, Eigen::Vector3d& p3, double thickness)
 {
     geometry geo;
@@ -116,6 +135,9 @@ geometry triangular_prism(Eigen::Vector3d& p1, Eigen::Vector3d& p2, Eigen::Vecto
 
 };
 
+
+// sphere_geometry geometry function returning a geometry object
+// -------------------------------------------------------------
 geometry sphere_geometry(Eigen::Vector3d& p1, double& ro)
 {
     geometry geo;
@@ -136,6 +158,8 @@ geometry sphere_geometry(Eigen::Vector3d& p1, double& ro)
     
 };
 
+// composite_geometry geometry function returning a geometry object
+// ----------------------------------------------------------------
 geometry composite_geometry(std::vector<geometry>& geometries)
 {
     geometry geo;
@@ -158,7 +182,6 @@ geometry composite_geometry(std::vector<geometry>& geometries)
     };
     //std::cout << "Geometry R = " << R << std::endl;
 
-    std::cout << "J = \n" << J << "\n";
     for (const auto& g : geometries)
     {
         auto d = g.R - R;
@@ -166,7 +189,6 @@ geometry composite_geometry(std::vector<geometry>& geometries)
                 A(g.P) * (g.J) * (A(g.P).transpose())
               + g.m * (d.squaredNorm()*I - d*d.transpose())
              );
-        std::cout << "J = \n" << J << "\n";
 
     };
     

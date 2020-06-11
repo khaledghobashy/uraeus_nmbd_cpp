@@ -1,3 +1,21 @@
+/*
+============================================================================
+                            uraeus.nmbd.cpp
+============================================================================
+
+Use of this source code is governed by a BSD-style license that can be found
+in the LICENSE file at the top level of the distribution.
+
+Authors:
+    - Khaled Ghobashy
+
+
+============================================================================
+                                Summary
+============================================================================
+
+*/
+
 #pragma once
 
 // Standard Library Includes.
@@ -10,7 +28,11 @@
 #include "helpers.hpp"
 #include "utilities.hpp"
 
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", ",");
+
+// csv file formatter to export Eigen matricies as comma separated value text.
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, 
+                                       Eigen::DontAlignCols, 
+                                       ", ", ", ", "", "", "", ",");
 
 
 // Declaring and Implementing the Solver class as a template class.
@@ -94,14 +116,11 @@ Solver<T>::Solver()
         MassMatrix(T::n, T::n),
         model("", q, qd, qdd, lgr)
 {
-    //Jacobian.resize(model.nc, model.n);
-    //MassMatrix.resize(model.n, model.n);
-
-    results_names[0] = "Positions";
-    results_names[1] = "Velocities";
-    results_names[2] = "Accelerations";
-    results_names[3] = "LagrnageMultipliers";
-    results_names[4] = "Constraints";
+    results_names[0] = "_pos";
+    results_names[1] = "_vel";
+    results_names[2] = "_acc";
+    results_names[3] = "_lgr";
+    results_names[4] = "_rct";
 };
 
 
@@ -181,18 +200,17 @@ void Solver<T>::eval_jac_eq()
 };
 
 template<class T>
-void Solver<T>::eval_rct_eq()
-{   
-    model.eval_reactions(Jacobian);    
-};
-
-template<class T>
 void Solver<T>::eval_mas_eq()
 {   
     model.eval_mas_eq();    
     SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
 };
 
+template<class T>
+void Solver<T>::eval_rct_eq()
+{   
+    model.eval_reactions(Jacobian);    
+};
 
 template<class T>
 void Solver<T>::solve_lgr_multipliers()
@@ -266,7 +284,6 @@ void Solver<T>::Solve()
     //Eigen::SparseLU<SparseBlock> SparseSolver;
     
     auto& dt = step_size;
-    double t = 0;
     auto samples = time_array.size();
     
     //std::cout << "Setting Initial Position History" << "\n";
@@ -277,6 +294,8 @@ void Solver<T>::Solve()
     pos_history.reserve(samples);
     vel_history.reserve(samples);
     acc_history.reserve(samples);
+    lgr_history.reserve(samples);
+    rct_history.reserve(samples);
 
     //std::cout << "Computing Jacobian" << "\n";
     eval_jac_eq();
@@ -334,7 +353,7 @@ void Solver<T>::Solve()
     results[4] = &rct_history;
 
     std::cout << "\n";
-    std::cout << "Finished Solver ..." << "\n";
+    std::cout << "Finished Solver ... \n";
 
 };
 
@@ -347,10 +366,7 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     std::ofstream results_file;
 
     std::map<int, std::string> ordered_indicies;
-    for (auto& x : model.indicies_map)
-    {
-        ordered_indicies[x.second] = x.first;
-    };
+    for (auto& x : model.indicies_map) { ordered_indicies[x.second] = x.first; };
 
     // Creating the system indicies string to be used as the fisrt line
     // in the .csv file
@@ -366,7 +382,7 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     };
 
     // Opening the file as a .csv file.
-    results_file.open (location + name + ".csv");
+    results_file.open (location + name + results_names[id] + ".csv");
     
     // Inserting the first line to be the indicies of the system.
     results_file << ", " + indicies + "time\n";
@@ -413,7 +429,7 @@ void Solver<T>::ExportReactionsResults(std::string location, std::string name)
     };
 
     // Opening the file as a .csv file.
-    results_file.open (location + name + ".csv");
+    results_file.open (location + name + results_names[4] + ".csv");
     
     // Inserting the first line to be the indicies of the system.
     results_file << "," + indicies + "time\n";
@@ -444,7 +460,7 @@ void Solver<T>::ExportLagrangeMultipliers(std::string location, std::string name
 
 
     // Opening the file as a .csv file.
-    results_file.open (location + name + ".csv");
+    results_file.open (location + name + results_names[3] + ".csv");
     
     //std::cout << "Looping over the results and writing each line to the .csv file.!\n\n";
     // Looping over the results and writing each line to the .csv file.

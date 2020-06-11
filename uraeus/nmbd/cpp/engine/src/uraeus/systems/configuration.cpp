@@ -1,3 +1,21 @@
+/*
+============================================================================
+                            uraeus.nmbd.cpp
+============================================================================
+
+Use of this source code is governed by a BSD-style license that can be found
+in the LICENSE file at the top level of the distribution.
+
+Authors:
+    - Khaled Ghobashy
+
+
+============================================================================
+                                Summary
+============================================================================
+
+*/
+
 
 #include "configuration.hpp"
 
@@ -25,6 +43,9 @@ ConfigurationAssembler::ConfigurationAssembler()
     :
         config_map()
 {
+    // The default constructor only initializes the "config_map" container in
+    // the initailizer list.
+
     //std::cout << "\nCalling ConfigurationAssembler::ConfigurationAssembler\n";
     //std::cout << "\n";
 };
@@ -32,15 +53,16 @@ ConfigurationAssembler::ConfigurationAssembler(const std::string& fileName)
     :
         config_map()
 {
+    // This constructor takes in the .json file and passes the file to its member
+    // method "constructFromJSON(fileName)".
+
     this->constructFromJSON(fileName);
     //std::cout << "Calling ConfigurationAssembler::ConfigurationAssembler(fileName)" << std::endl;
 };
 
-/*
-===============================================================================
-                            JSON Document Handlers
-===============================================================================
-*/
+
+// JSON Document Handlers
+// ======================
 void ConfigurationAssembler::constructFromJSON(const std::string& fileName)
 {
     rapidjson::Document document = this->readFile(fileName);
@@ -49,47 +71,52 @@ void ConfigurationAssembler::constructFromJSON(const std::string& fileName)
 
 rapidjson::Document ConfigurationAssembler::readFile(const std::string& fileName)
 {
+    // loading the fileName into a file variable of type ifstream
     std::ifstream file{fileName};
+
+    // checking if the file was opened correctly and terminating otherwise
     if (!file.is_open())
         std::cerr << "Could not open file (%s) for reading!\n" << fileName;
+        // std::terminate();
 
+    // loading the file instance into rapidjson IStreamWrapper and constructing a
+    // "document" from the acquired stream.
     rapidjson::IStreamWrapper isw{file};
     rapidjson::Document document {};
     document.ParseStream(isw);
+
     return document;
 };
 
 
+// -------------------------------------------------------------------------
+//                           Configuration Assembler
+// -------------------------------------------------------------------------
 void ConfigurationAssembler::constructConfiguration(rapidjson::Document& document)
 {
     const Value& inputsObject = document["user_inputs"].GetObject();
     const Value& evalObject   = document["evaluations"].GetObject();
     const Value& outObject    = document["outputs"].GetObject();
-
-    //std::cout << Constructors.size() << std::endl;
-    //for (auto elem : Constructors){std::cout << elem.first << std::endl;};
     
     std::cout << "Constructing Inputs!" << "\n";
-    this->constructInputs(inputsObject);
+    constructInputs(inputsObject);
     std::cout << "Inputs Constructed!" << "\n";
 
     std::cout << "Constructing Helpers!" << "\n";
-    this->constructEvaluations(evalObject);
+    constructEvaluations(evalObject);
     std::cout << "Helpers Constructed!" << "\n";
     
     std::cout << "Evaluating Outputs!" << "\n";
-    this->constructOutputs(outObject);
+    constructOutputs(outObject);
     std::cout << "Outputs Constructed!" << "\n";
-
 };
 
 
-// Inputs Constructor
-// ==================
+// -------------------------------------------------------------------------
+//                              Inputs Assembler
+// -------------------------------------------------------------------------
 void ConfigurationAssembler::constructInputs(const rapidjson::Value& inputsObject)
 {
-    auto& config_map = this-> config_map;
-
     for (Value::ConstMemberIterator itr = inputsObject.MemberBegin();
         itr != inputsObject.MemberEnd(); ++itr)
     {
@@ -110,12 +137,11 @@ void ConfigurationAssembler::constructInputs(const rapidjson::Value& inputsObjec
 
 };
 
-// Intermediat Evaluations Constructor
-// ===================================
+// -------------------------------------------------------------------------
+//                      Intermediat Evaluations Assembler
+// -------------------------------------------------------------------------
 void ConfigurationAssembler::constructEvaluations(const rapidjson::Value& evalObject)
 {
-    auto& config_map = this-> config_map;
-
     for (Value::ConstMemberIterator itr = evalObject.MemberBegin();
         itr != evalObject.MemberEnd(); ++itr)
     {
@@ -124,12 +150,11 @@ void ConfigurationAssembler::constructEvaluations(const rapidjson::Value& evalOb
     };
 };
 
-// Outputs Constructor
-// ===================
+// -------------------------------------------------------------------------
+//                              Outputs Assembler
+// -------------------------------------------------------------------------
 void ConfigurationAssembler::constructOutputs(const rapidjson::Value& outObject)
 {
-    auto& config_map = this-> config_map;
-
     for (Value::ConstMemberIterator itr = outObject.MemberBegin();
         itr != outObject.MemberEnd(); ++itr)
     {
@@ -163,6 +188,7 @@ void ConfigurationAssembler::constructOutputs(const rapidjson::Value& outObject)
     };
 };
 
+
 // Generic Object Constructor
 // ==========================
 void ConfigurationAssembler::constructObject(const std::string& constructor_, 
@@ -183,11 +209,9 @@ void ConfigurationAssembler::constructObject(const std::string& constructor_,
 };
 
 
-/*
-===============================================================================
-                            Construction Methods
-===============================================================================
-*/
+// ===========================================================================
+//                            Construction Methods
+// ===========================================================================
 
 // ----------------------------------------------------------------------------
 // Vectors and Matricies Constructor
@@ -286,11 +310,11 @@ void ConfigurationAssembler::Cylinder_Geometry(rapidjson::Value::ConstMemberIter
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
 
-    std::cout << elementName << "\n";
-    std::cout << geo.R << "\n";
-    std::cout << geo.P << "\n";
-    std::cout << geo.m << "\n";
-    std::cout << geo.J << "\n\n";
+    //std::cout << elementName << "\n";
+    //std::cout << geo.R << "\n";
+    //std::cout << geo.P << "\n";
+    //std::cout << geo.m << "\n";
+    //std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
@@ -303,7 +327,7 @@ void ConfigurationAssembler::Triangular_Prism(rapidjson::Value::ConstMemberItera
     const rapidjson::Value& value = item->value["args"];
     std::string elementName = item->name.GetString();
 
-    std::cout << "triangular_prism" << "\n";
+    //std::cout << "triangular_prism" << "\n";
     //printf("Type of member %s is %s\n", elementName, elementType);
 
     std::string p1_name = value[0].GetString();
@@ -330,11 +354,11 @@ void ConfigurationAssembler::Triangular_Prism(rapidjson::Value::ConstMemberItera
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
 
-    std::cout << elementName << "\n";
-    std::cout << geo.R << "\n";
-    std::cout << geo.P << "\n";
-    std::cout << geo.m << "\n";
-    std::cout << geo.J << "\n\n";
+    //std::cout << elementName << "\n";
+    //std::cout << geo.R << "\n";
+    //std::cout << geo.P << "\n";
+    //std::cout << geo.m << "\n";
+    //std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
@@ -347,7 +371,7 @@ void ConfigurationAssembler::Composite_Geometry(rapidjson::Value::ConstMemberIte
     const rapidjson::Value& value = item->value["args"];
     std::string elementName = item->name.GetString();
 
-    std::cout << "Composite_Geometry" << "\n";
+    //std::cout << "Composite_Geometry" << "\n";
 
     std::vector<geometry> geometries;
     for (unsigned int j=0; j < value.Size(); j++)
@@ -367,11 +391,11 @@ void ConfigurationAssembler::Composite_Geometry(rapidjson::Value::ConstMemberIte
     config_map[elementName + std::string(".J")] = geo.J;
     config_map[elementName + std::string(".m")] = geo.m;
     
-    std::cout << elementName << "\n";
-    std::cout << geo.R << "\n";
-    std::cout << geo.P << "\n";
-    std::cout << geo.m << "\n";
-    std::cout << geo.J << "\n\n";
+    //std::cout << elementName << "\n";
+    //std::cout << geo.R << "\n";
+    //std::cout << geo.P << "\n";
+    //std::cout << geo.m << "\n";
+    //std::cout << geo.J << "\n\n";
 
 };
 // ----------------------------------------------------------------------------
@@ -519,11 +543,7 @@ void ConfigurationAssembler::get(const std::string& name, geometry& value)
 };
 
 void ConfigurationAssembler::get(const std::string& name, std::function<double(double)>& value)
-{
-    
-};
+{ };
 
 void ConfigurationAssembler::get(const std::string& name, std::function<Eigen::Vector3d(double)>& value)
-{
-    
-};
+{ };
