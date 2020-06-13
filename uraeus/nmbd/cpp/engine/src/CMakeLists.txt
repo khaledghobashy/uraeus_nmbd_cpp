@@ -10,13 +10,11 @@ add_library(uraeuslib
     uraeus/systems/configuration.cpp
 )
 target_include_directories(uraeuslib 
-    PUBLIC 
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
 # add the install targets
 install(
-    TARGETS 
-        uraeuslib 
+    TARGETS uraeuslib 
     EXPORT uraeusTargets
     DESTINATION lib/cmake/uraeus/lib)
 

@@ -9,11 +9,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#if(MSVC)
-#    add_compile_options(/W3 /WX)
-#else()
-#    add_compile_options(-W -Wall)
-#endif()
 
 add_subdirectory(src)
 add_subdirectory(sandbox/double_wishbone)
@@ -34,13 +29,16 @@ install(
 
 
 include(CMakePackageConfigHelpers)
-# generate the config file that is includes the exports
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/uraeusConfig.cmake"
-  INSTALL_DESTINATION "lib/cmake/uraeus"
-  NO_SET_AND_CHECK_MACRO
-  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+
+# generate the config file that includes the exports
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/uraeusConfig.cmake"
+    INSTALL_DESTINATION "lib/cmake/uraeus"
+    NO_SET_AND_CHECK_MACRO
+    NO_CHECK_REQUIRED_COMPONENTS_MACRO
   )
+
 # generate the version file for the config file
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/uraeusConfigVersion.cmake"
