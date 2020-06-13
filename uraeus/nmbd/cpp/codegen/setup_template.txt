@@ -1,0 +1,44 @@
+import os
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
+from Cython.Build import cythonize
+
+
+class build_ext_compiler_check(build_ext):
+
+    BUILD_ARGS = {
+        "msvc": ['/std=c++17', '/EHsc', '/DHUNSPELL_STATIC'],
+        "gcc" : ['-std=c++17', '-O3', '-DNDEBUG', '-g0']}
+
+    def build_extensions(self):
+        compiler = self.compiler.compiler_type
+        args = self.BUILD_ARGS.get(compiler, ['-std=c++17', '-O3', '-DNDEBUG', '-g0'])
+        for ext in self.extensions:
+            ext.extra_compile_args = args
+        build_ext.build_extensions(self)
+
+
+
+inc_dir = os.path.abspath('../../uraeus_nmbd_cpp/uraeus/nmbd/cpp/engine/src')
+
+cython_files = [
+                "src/simulation_cy.pyx", 
+                "src/call_obj.pyx",
+                ]
+
+object_files = []
+
+ext = Extension('simulation_cy', 
+                sources=[*cython_files, ],
+                language="c++",
+                extra_objects=[*object_files],
+                include_dirs=[inc_dir],
+                library_dirs=['./'],
+                libraries=['model_lib', 'uraeuslib'],
+                )
+
+setup(
+    ext_modules = cythonize(ext), 
+    include_dirs = [inc_dir],
+    cmdclass = {'build_ext': build_ext_compiler_check},
+    )
