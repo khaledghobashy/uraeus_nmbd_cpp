@@ -12,6 +12,8 @@ add_library(uraeuslib
 target_include_directories(uraeuslib 
     PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 
+target_compile_options(uraeuslib PRIVATE "-fPIC")
+
 # add the install targets
 install(
     TARGETS uraeuslib 
