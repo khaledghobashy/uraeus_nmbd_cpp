@@ -172,7 +172,7 @@ class template_codegen(abstract_generator):
 
         with open(source_template, "r") as f:
             template_text = Template(f.read())
-                
+        
         file_name = self.name
 
         jac_rows, jac_cols, nnz = self.get_jac_data()
