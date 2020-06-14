@@ -1,0 +1,24 @@
+#pragma once
+
+#include <numeric>
+#include "uraeus/solvers/solvers.hpp"
+#include "$topology_name.hpp"
+
+class Simulation
+{
+
+public:
+    Simulation();
+
+private:
+    Solver<Topology> Soln;
+
+public:
+    void Solve(double simTime, double steps);
+    void ConstructConfiguration(std::string fileName);
+    void SaveResults(std::string location, std::string name, int level);
+
+public:
+    $user_functions
+
+};

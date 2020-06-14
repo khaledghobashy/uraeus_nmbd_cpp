@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 add_subdirectory(src)
-add_subdirectory(sandbox/double_wishbone)
+#add_subdirectory(sandbox/double_wishbone)
 
 set(uraeus_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 

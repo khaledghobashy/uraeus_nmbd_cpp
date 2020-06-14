@@ -1,0 +1,27 @@
+# distutils: language = c++
+# cython: language_level=3
+
+from libcpp.string cimport string
+from libcpp.functional cimport function
+
+cdef extern from "py_obj_wrapper.hpp":
+    cdef cppclass PyObjWrapper:
+        PyObjWrapper()
+        PyObjWrapper(object) # define a constructor that takes a Python object
+        
+
+cdef extern from "../src/simulation.hpp":    
+    cdef cppclass Simulation:
+    
+        Simulation() except +
+        
+        void Solve(double simTime, double steps)
+        void ConstructConfiguration(string fileName)
+        void SaveResults(string location, string name, int level)
+        
+        # User Defined Functions to be provided for the simulation instance
+        # -----------------------------------------------------------------
+        
+        $user_functions
+
+

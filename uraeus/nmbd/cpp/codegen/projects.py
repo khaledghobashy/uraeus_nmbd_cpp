@@ -23,10 +23,10 @@ class standalone_project(object):
     def __init__(self, parent_dir=''):
         
         self.parent_dir = parent_dir
-        self.code_dir = os.path.join(self.parent_dir, 'numenv', 'cpp_eigen')
+        self.code_dir = os.path.join(self.parent_dir, 'numenv', 'cpp')
         
     def _create_subdirs(self):
-        for d in ['build', 'src', 'bin']:
+        for d in ['build', 'src', 'bin', 'cython']:
             subdir = os.path.join(self.code_dir, d)
             if not os.path.exists(subdir):
                 os.makedirs(subdir)
@@ -39,11 +39,13 @@ class standalone_project(object):
                 self._create_common_dirs()
         self._create_subdirs()
         
-    def write_topology_code(self, topology):
-        src_path = os.path.join(self.code_dir, 'src')
-        codegen = generators.template_codegen(topology)
-        codegen.write_header_file(src_path)
-        codegen.write_source_file(src_path)
+    def write_topology_code(self, sym_model):
+        cpp_src = os.path.join(self.code_dir, 'src')
+        cth_src = os.path.join(self.code_dir, 'cython')
+        codegen = generators.template_codegen(sym_model.topology)
+        codegen.write_cmake_file(self.code_dir)
+        codegen.write_cpp_files(cpp_src)
+        codegen.write_cython_files(cth_src)
             
     
     def write_configuration_code(self, config):

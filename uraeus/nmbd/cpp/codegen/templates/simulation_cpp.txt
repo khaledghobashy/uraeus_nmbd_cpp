@@ -1,0 +1,36 @@
+
+#include "simulation.hpp"
+
+Simulation::Simulation()
+{
+    std::cout << "Initiallizing Simulation" << std::endl;
+};
+
+void Simulation::ConstructConfiguration(std::string fileName)
+{
+    Soln.model.config.constructFromJSON(fileName);
+    Soln.model.config.set_inital_configuration();
+
+    std::cout << "\nInitializing Model!" << std::endl;
+    Soln.initialize();
+
+    $default_functions
+
+};
+
+
+void Simulation::Solve(double simTime, double steps)
+{
+    Soln.set_time_array(simTime, steps);
+    Soln.Solve();
+};
+
+void Simulation::SaveResults(std::string location, std::string name, int level)
+{
+    if (level != 4) {Soln.ExportResultsCSV(location, name, level);}
+    else {Soln.ExportReactionsResults(location, name);};
+    
+};
+
+
+$user_functions

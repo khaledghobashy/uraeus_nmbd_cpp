@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
-project($project_name  VERSION 0.0.1
-                DESCRIPTION "$project_description"
-                LANGUAGES CXX)
+project($topology_name  
+    VERSION 0.0.1
+    DESCRIPTION "a $topology_name topology created via the uraeus.smbd python package"
+    LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

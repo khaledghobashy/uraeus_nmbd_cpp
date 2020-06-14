@@ -1,6 +1,7 @@
 # Standard library imports
 import os
 import re
+import shutil
 import textwrap
 import itertools
 from string import Template
@@ -83,29 +84,207 @@ class abstract_generator(object):
 ###############################################################################
 
 class template_codegen(abstract_generator):
-    
-    
-    def write_header_file(self, dir_path=''):
-        file_path = os.path.join(dir_path, self.name)
-        system_class = self._write_header_content()
-        with open('%s.hpp'%file_path, 'w') as file:
-            file.write(system_class)
-        print('File full path : %s.hpp'%file_path)
-    
-    
-    def write_source_file(self, dir_path=''):
-        file_path = os.path.join(dir_path, self.name)
-        system_class = self._write_source_content()
-        with open('%s.cpp'%file_path, 'w') as file:
-            file.write(system_class)
-        print('File full path : %s.cpp'%file_path)
 
+    
+    def write_cmake_file(self, dir_path=''):
+        file_path = os.path.join(dir_path, 'CMakeLists.txt')
+        text = self._write_cmake_content()
+        with open(file_path, 'w') as file:
+            file.write(text)
+        print('Generated CMakeLists.txt at : %s'%file_path)
+
+    def write_cpp_files(self, dir_path=''):
+        self.write_topology_header(dir_path)
+        self.write_topology_source(dir_path)
+        self.write_simulation_header(dir_path)
+        self.write_simulation_source(dir_path)
+
+    def write_cython_files(self, dir_path=''):
+        templates_path = os.path.join(os.path.dirname(__file__), "templates")
+        self.write_pyx_file(dir_path)
+        self.write_pxd_file(dir_path)
+        shutil.copy(os.path.join(templates_path, "call_obj.pyx"), dir_path)
+        shutil.copy(os.path.join(templates_path, "py_obj_wrapper.hpp"), dir_path)
+
+    def write_topology_header(self, dir_path=''):
+        file_path = os.path.join(dir_path, self.name)
+        text = self._write_header_content()
+        with open('%s.hpp'%file_path, 'w') as file:
+            file.write(text)
+        print('Generated topology header file at : %s.hpp'%file_path)
+    
+    def write_topology_source(self, dir_path=''):
+        file_path = os.path.join(dir_path, self.name)
+        text = self._write_source_content()
+        with open('%s.cpp'%file_path, 'w') as file:
+            file.write(text)
+        print('Generated topology source file at : %s.cpp'%file_path)
+    
+    def write_simulation_header(self, dir_path=''):
+        file_path = os.path.join(dir_path, 'simulation')
+        text = self._write_simulation_hpp_content()
+        with open('%s.hpp'%file_path, 'w') as file:
+            file.write(text)
+        print('Generated simulation header file at : %s.hpp'%file_path)
+    
+    def write_simulation_source(self, dir_path=''):
+        file_path = os.path.join(dir_path, 'simulation')
+        text = self._write_simulation_cpp_content()
+        with open('%s.cpp'%file_path, 'w') as file:
+            file.write(text)
+        print('Generated simulation source file at : %s.cpp'%file_path)
+
+    
+    def write_pyx_file(self, dir_path=''):
+        file_path = os.path.join(dir_path, 'simulation.pyx')
+        text = self._write_pyx_content()
+        with open(file_path, 'w') as file:
+            file.write(text)
+        print('Generated simulation.pyx at : %s'%file_path)
+
+    def write_pxd_file(self, dir_path=''):
+        file_path = os.path.join(dir_path, 'simulation.pxd')
+        text = self._write_pxd_content()
+        with open(file_path, 'w') as file:
+            file.write(text)
+        print('Generated simulation.pxd at : %s'%file_path)
+
+    
+    def _write_pyx_content(self):
+        template = os.path.join(os.path.dirname(__file__), "templates/simulation_pyx.txt")
+
+        with open(template, "r") as f:
+            template_text = Template(f.read())
+        
+        function_definition = \
+        '''
+        def set_{UF}(self, func):
+            cdef PyObjWrapper f = PyObjWrapper(func)
+            self.sim.set_{UF}(f)
+        '''
+
+        user_functions = [function_definition.format(UF = i) \
+            for i in self.arguments_symbols if i.startswith('UF')]
+
+        user_functions_text = '\n'.join(user_functions)
+        user_functions_text = textwrap.dedent(user_functions_text)
+        user_functions_text = textwrap.indent(user_functions_text, 4*' ').lstrip()
+
+        text = template_text.safe_substitute(
+            user_functions = user_functions_text)
+
+        return text
+
+    def _write_pxd_content(self):
+        template = os.path.join(os.path.dirname(__file__), "templates/simulation_pxd.txt")
+
+        with open(template, "r") as f:
+            template_text = Template(f.read())
+        
+        function_definition = \
+        '''
+        void set_{UF}(PyObjWrapper func) except +
+        '''
+
+        user_functions = [function_definition.format(UF = i) \
+            for i in self.arguments_symbols if i.startswith('UF')]
+
+        user_functions_text = ''.join(user_functions)
+        user_functions_text = textwrap.dedent(user_functions_text)
+        user_functions_text = textwrap.indent(user_functions_text, 8*' ').lstrip()
+
+        text = template_text.safe_substitute(
+            user_functions = user_functions_text)
+        
+        return text
+
+
+    def _write_simulation_hpp_content(self):
+        template = os.path.join(os.path.dirname(__file__), "templates/simulation_hpp.txt")
+
+        with open(template, "r") as f:
+            template_text = Template(f.read())
+        
+        function_definition = \
+        '''
+        void set_{UF}(std::function<double(double)> func);
+        '''
+
+        user_functions = [function_definition.format(UF = i) \
+            for i in self.arguments_symbols \
+                if (i.startswith('UF') and not (i.endswith('_F') or i.endswith('_T')))]
+
+        user_functions_text = ''.join(user_functions)
+        user_functions_text = textwrap.dedent(user_functions_text)
+        user_functions_text = textwrap.indent(user_functions_text, 4*' ').lstrip()
+
+        text = template_text.safe_substitute(
+            topology_name = self.name,
+            user_functions = user_functions_text)
+
+        return text
+    
+
+    def _write_simulation_cpp_content(self):
+        template = os.path.join(os.path.dirname(__file__), "templates/simulation_cpp.txt")
+
+        with open(template, "r") as f:
+            template_text = Template(f.read())
+
+        
+        default_functions_text = \
+        '''
+        Soln.model.config.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
+        '''
+       
+        default_functions = [default_functions_text.format(UF = i)\
+            for i in self.arguments_symbols \
+                if (i.startswith('UF') and (i.endswith('_F') or i.endswith('_T')))]
+
+        default_functions_text = ''.join(default_functions)
+        default_functions_text = textwrap.dedent(default_functions_text)
+        default_functions_text = textwrap.indent(default_functions_text, 4*' ').lstrip()
+
+
+        function_definition = \
+        '''
+        void Simulation::set_{UF}(std::function<double(double)> func)
+        {{
+            Soln.model.config.{UF} = func;
+        }};
+        '''
+
+        user_functions = [function_definition.format(UF = i) \
+            for i in self.arguments_symbols \
+                if (i.startswith('UF') and not (i.endswith('_F') or i.endswith('_T')))]
+
+        user_functions_text = ''.join(user_functions)
+        user_functions_text = textwrap.dedent(user_functions_text)
+        user_functions_text = textwrap.indent(user_functions_text, '').lstrip()
+
+
+        text = template_text.safe_substitute(
+            user_functions = user_functions_text,
+            default_functions = default_functions_text)
+
+        return text
+
+    def _write_cmake_content(self):
+        template = os.path.join(os.path.dirname(__file__), "templates/cmake_template.txt")
+
+        with open(template, "r") as f:
+            template_text = Template(f.read())
+        
+        text = template_text.safe_substitute(
+            topology_name = self.name)
+
+        return text
     
     def _write_header_content(self):
         printer = p = self.printer
         indent = ''
 
-        header_template = os.path.join(os.path.dirname(__file__), "header_template.txt")
+        header_template = os.path.join(os.path.dirname(__file__), "templates/header_template.txt")
 
         with open(header_template, "r") as f:
             template_text = Template(f.read())
@@ -168,7 +347,7 @@ class template_codegen(abstract_generator):
         printer = self.printer
         indent = ''
 
-        source_template = os.path.join(os.path.dirname(__file__), "source_template.txt")
+        source_template = os.path.join(os.path.dirname(__file__), "templates/source_template.txt")
 
         with open(source_template, "r") as f:
             template_text = Template(f.read())
