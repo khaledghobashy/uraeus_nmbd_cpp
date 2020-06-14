@@ -4,7 +4,7 @@
 from libcpp.string cimport string
 from libcpp.functional cimport function
 
-from simulation_cy cimport Simulation, PyObjWrapper 
+from simulation cimport Simulation, PyObjWrapper 
 
 import ctypes
 
