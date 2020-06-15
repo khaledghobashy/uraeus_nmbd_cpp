@@ -32,3 +32,4 @@ target_link_libraries(model_lib PUBLIC uraeuslib)
 add_executable(model src/main.cpp)
 target_link_libraries(model PRIVATE model_lib)
 
+add_subdirectory(cython)

@@ -105,6 +105,10 @@ class template_codegen(abstract_generator):
         self.write_pxd_file(dir_path)
         shutil.copy(os.path.join(templates_path, "call_obj.pyx"), dir_path)
         shutil.copy(os.path.join(templates_path, "py_obj_wrapper.hpp"), dir_path)
+        shutil.copy(os.path.join(templates_path, "cython_cmake.txt"), os.path.join(dir_path, "CMakeLists.txt"))
+        print('Generated call_obj.pyx file at %s'%dir_path)
+        print('Generated py_obj_wrapper.hpp file at %s'%dir_path)
+        print('Generated CMakeLists.txt file at %s'%dir_path)
 
     def write_topology_header(self, dir_path=''):
         file_path = os.path.join(dir_path, self.name)
@@ -164,7 +168,8 @@ class template_codegen(abstract_generator):
         '''
 
         user_functions = [function_definition.format(UF = i) \
-            for i in self.arguments_symbols if i.startswith('UF')]
+            for i in self.arguments_symbols \
+                if i.startswith('UF') and not (i.endswith('_F') or i.endswith('_T'))]
 
         user_functions_text = '\n'.join(user_functions)
         user_functions_text = textwrap.dedent(user_functions_text)
@@ -187,7 +192,8 @@ class template_codegen(abstract_generator):
         '''
 
         user_functions = [function_definition.format(UF = i) \
-            for i in self.arguments_symbols if i.startswith('UF')]
+            for i in self.arguments_symbols \
+                if i.startswith('UF') and not (i.endswith('_F') or i.endswith('_T'))]
 
         user_functions_text = ''.join(user_functions)
         user_functions_text = textwrap.dedent(user_functions_text)

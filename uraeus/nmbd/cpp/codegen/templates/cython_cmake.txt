@@ -1,0 +1,32 @@
+
+find_package(PythonLibs 3 REQUIRED)
+
+message("Python 3 Directory : ${PYTHON_INCLUDE_DIRS}")
+
+
+add_library(simulation SHARED
+            simulation.cpp
+            call_obj.cpp
+)
+set_target_properties(simulation PROPERTIES PREFIX "")
+
+target_include_directories(simulation
+    PUBLIC
+        "${uraeus_INCLUDE_DIRS}" 
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${PYTHON_INCLUDE_DIRS}")
+
+target_link_libraries(simulation PUBLIC uraeuslib model_lib ${PYTHON_LIBRARIES})
+
+target_compile_options(simulation 
+    PRIVATE 
+    "-fPIC" 
+    "-pthread" 
+    "-fwrapv" 
+    "-O3" 
+    "-Wall" 
+    "-fno-strict-aliasing")
+
+add_custom_command(TARGET simulation POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:simulation> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
