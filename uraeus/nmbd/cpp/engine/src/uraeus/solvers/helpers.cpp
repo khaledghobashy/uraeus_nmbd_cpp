@@ -20,21 +20,24 @@ double derivative(std::function<double(double)> func, double x, int order = 1)
 
 void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data)
 {
-    //std::cout << "Declaring Local Variables" << "\n";
+    //Declaring Local Variables
 
     int row_counter = 0;
     int col_counter = 0;
     int prev_rows_size = 0;
     int prev_cols_size = 0;
-    const int nnz = rows.size();
-    int vi, vj, m, n;
-    double value;
+    int vi = 0;
+    int vj = 0;
+    int m = 0;
+    int n = 0;
+    double value = 0;
+    const Eigen::Index nnz = rows.size();
 
     std::vector<Eigen::Triplet<double>> container;
     container.reserve(nnz);
 
     //std::cout << "Starting Main for loop" << "\n";
-    for (size_t v = 0; v < nnz; v++)
+    for (Eigen::Index v = 0; v < nnz; v++)
     {
         //std::cout << "row = " << rows[v] << " : cols = " << cols[v] << "\n" << data[v] << "\n\n";
         //std::cout << "loop v = " << v << "\n";
@@ -76,11 +79,11 @@ void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlock
         }
         
         //std::cout << "Entring for (size_t i = 0; i < m; i++)" << "\n";
-        for (size_t i = 0; i < m; i++)
+        for (int j = 0; j < n; j++)
         {
             //std::cout << "i = " << i << "\n";
             //std::cout << "Entring for (size_t j = 0; j < n; j++)" << "\n\n";
-            for (size_t j = 0; j < n; j++)
+            for (int i = 0; i < m; i++)
             {
                 value = data[v](i,j);
                 //std::cout << "j = " << j << "\n";
