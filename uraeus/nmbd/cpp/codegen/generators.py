@@ -443,12 +443,15 @@ class template_codegen(abstract_generator):
         
         # Extract the numerical format of the replacements and expressions into
         # a list of string expressions.
-        num_repl_list = ['auto&& %s'%(printer._print(exp, declare=False, is_ref=True)) for exp in replacements_list]
+        num_repl_list = ['%s'%(printer._print(exp, declare=True, is_ref=False)) for exp in replacements_list]
         num_expr_list = [printer._print(exp) for exp in vector_data]
         
         # Joining the extracted strings to form a valid text block.
         num_repl_text = '\n'.join(num_repl_list)
         num_expr_text = ',\n'.join(num_expr_list)
+
+        num_repl_text = re.sub(r'Eigen::Vector3d\s+([a-zA-Z_][a-zA-Z_0-9]*) = t ;',
+                               r'double \1 = t ;', num_repl_text)
 
         # Creating a regex pattern of strings that represents the variables
         # which need to be perfixed by a 'self.' to be referenced correctly.
@@ -552,37 +555,6 @@ class template_codegen(abstract_generator):
 
         return num_constants_text, sym_constants_text
     
-    def get_reactions_equations1(self):
-        
-        indent = 4*' '
-        p = self.printer
-        
-        equations = self.mbs.reactions_equalities
-        #print(equations[0].rhs.args[1].__class__.__name__)
-        #print(equations[0].rhs.shape)
-        #print('\n', p._print(equations[0].rhs), '\n')
-        equations_text = '\n'.join([p._print(expr) for expr in equations])
-        
-        self_pattern = itertools.chain(self.runtime_symbols,
-                                       self.constants_symbols,
-                                       self.joint_reactions_sym,
-                                       self.lagrange_multipliers_sym)
-        self_pattern = '|'.join(self_pattern)
-        self_inserter = self._insert_string('')
-        equations_text = re.sub(self_pattern,self_inserter,equations_text)
-        
-        config_pattern = set(self.primary_arguments) - set(self.runtime_symbols)
-        config_pattern = '|'.join([r'%s'%i for i in config_pattern])
-        config_inserter = self._insert_string('config.')
-        equations_text = re.sub(config_pattern,config_inserter,equations_text)
-                
-        equations_text = textwrap.indent(equations_text,indent).lstrip() 
-        
-        reactions = ',\n'.join(['%r : self.%s'%(i,i) for i in self.joint_reactions_sym])
-        reactions = textwrap.indent(reactions, 5*indent).lstrip()
-        reactions = '{%s}'%reactions
-        
-        return equations_text, reactions
 
     def get_reactions_equations(self):
 
@@ -618,7 +590,39 @@ class template_codegen(abstract_generator):
         
         expressions_text = '\n\n'.join(expressions)
         return expressions_text
-
+    
+    
+    def get_reactions_equations1(self):
+        
+        indent = 4*' '
+        p = self.printer
+        
+        equations = self.mbs.reactions_equalities
+        #print(equations[0].rhs.args[1].__class__.__name__)
+        #print(equations[0].rhs.shape)
+        #print('\n', p._print(equations[0].rhs), '\n')
+        equations_text = '\n'.join([p._print(expr) for expr in equations])
+        
+        self_pattern = itertools.chain(self.runtime_symbols,
+                                       self.constants_symbols,
+                                       self.joint_reactions_sym,
+                                       self.lagrange_multipliers_sym)
+        self_pattern = '|'.join(self_pattern)
+        self_inserter = self._insert_string('')
+        equations_text = re.sub(self_pattern,self_inserter,equations_text)
+        
+        config_pattern = set(self.primary_arguments) - set(self.runtime_symbols)
+        config_pattern = '|'.join([r'%s'%i for i in config_pattern])
+        config_inserter = self._insert_string('config.')
+        equations_text = re.sub(config_pattern,config_inserter,equations_text)
+                
+        equations_text = textwrap.indent(equations_text,indent).lstrip() 
+        
+        reactions = ',\n'.join(['%r : self.%s'%(i,i) for i in self.joint_reactions_sym])
+        reactions = textwrap.indent(reactions, 5*indent).lstrip()
+        reactions = '{%s}'%reactions
+        
+        return equations_text, reactions
 
     def get_reactions_equations2(self):
 
