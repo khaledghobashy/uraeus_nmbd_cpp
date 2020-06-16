@@ -9,6 +9,9 @@ add_library(simulation SHARED
             call_obj.cpp
 )
 set_target_properties(simulation PROPERTIES PREFIX "")
+if (WIN32)
+    set_target_properties(simulation PROPERTIES SUFFIX ".pyd")
+endif (WIN32)
 
 target_include_directories(simulation
     PUBLIC
@@ -18,14 +21,12 @@ target_include_directories(simulation
 
 target_link_libraries(simulation PUBLIC uraeuslib model_lib ${PYTHON_LIBRARIES})
 
-target_compile_options(simulation 
-    PRIVATE 
-    "-fPIC" 
-    "-pthread" 
-    "-fwrapv" 
-    "-O3" 
-    "-Wall" 
-    "-fno-strict-aliasing")
+if (NOT MSVC)
+    target_compile_options(simulation 
+        PRIVATE 
+        "-fPIC"  "-pthread"  "-fwrapv"  "-O3"  "-Wall" 
+        "-fno-strict-aliasing")
+endif()
 
 add_custom_command(TARGET simulation POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:simulation> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
