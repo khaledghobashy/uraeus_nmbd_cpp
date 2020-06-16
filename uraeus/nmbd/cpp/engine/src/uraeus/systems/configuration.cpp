@@ -203,7 +203,7 @@ void ConfigurationAssembler::constructObject(const std::string& constructor_,
     try { (this->*Constructors.at(constructor_))(object); }
     catch(const std::exception& e)
     {
-        //std::cerr << e.what() << '\n';
+        std::cerr << e.what() << '\n';
         std::cerr << "Constructor " << constructor_ << " has no mapped construction method!" << "\n";
     }
 };
