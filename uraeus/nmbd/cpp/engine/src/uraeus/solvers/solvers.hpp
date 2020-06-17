@@ -67,6 +67,13 @@ public:
 
     Eigen::SparseLU<SparseBlock> SparseSolver;
 
+
+    Container jac_triplets;
+    MatrixAssembler JacobianAssembler;
+
+    Container mas_triplets;
+    MatrixAssembler MassAssembler;
+
 public:
 
     Solver();
@@ -114,7 +121,9 @@ Solver<T>::Solver()
         lgr(T::nc),
         Jacobian(T::nc, T::n),
         MassMatrix(T::n, T::n),
-        model("", q, qd, qdd, lgr)
+        model("", q, qd, qdd, lgr),
+        JacobianAssembler(jac_rows, jac_cols, jac_triplets),
+        MassAssembler(mas_cols, mas_cols, mas_triplets)
 {
     results_names[0] = "_pos";
     results_names[1] = "_vel";
@@ -195,15 +204,17 @@ Eigen::VectorXd Solver<T>::eval_frc_eq()
 template<class T>
 void Solver<T>::eval_jac_eq()
 {   
-    model.eval_jac_eq();    
-    SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
+    model.eval_jac_eq();
+    JacobianAssembler.Assemble(Jacobian, model.jac_eq);
+    //SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
 };
 
 template<class T>
 void Solver<T>::eval_mas_eq()
 {   
-    model.eval_mas_eq();    
-    SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
+    model.eval_mas_eq();
+    MassAssembler.Assemble(MassMatrix, model.mas_eq);
+    //SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
 };
 
 template<class T>
@@ -243,7 +254,7 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
     SparseSolver.compute(Jacobian);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd&& error = SparseSolver.solve(-b);
+    Eigen::VectorXd error = SparseSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -271,7 +282,7 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
         itr++;
     };
     
-    q << guess;
+    q = guess;
     eval_jac_eq();
     SparseSolver.compute(Jacobian);
 };
@@ -332,8 +343,8 @@ void Solver<T>::Solve()
 
         solve_constraints(guess);
 
-        qd  << SparseSolver.solve(-eval_vel_eq());
-        qdd << SparseSolver.solve(-eval_acc_eq());
+        qd  = SparseSolver.solve(-eval_vel_eq());
+        qdd = SparseSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
         eval_rct_eq();
