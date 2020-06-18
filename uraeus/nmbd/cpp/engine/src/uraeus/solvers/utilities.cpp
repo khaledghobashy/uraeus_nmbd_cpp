@@ -21,7 +21,7 @@ void ExportResultsCSV(const std::string& name, const std::vector<Eigen::VectorXd
 
 void print_progress(time_point begin, Eigen::Index samples, int i)
 {
-    const int barWidth = 50;
+    const int barWidth = 40;
 
     auto end = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();

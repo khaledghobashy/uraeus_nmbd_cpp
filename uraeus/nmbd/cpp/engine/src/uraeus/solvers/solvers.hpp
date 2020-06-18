@@ -162,7 +162,7 @@ void Solver<T>::initialize()
     for (size_t i = 0; i < model.jac_rows.size(); i++)
         {
             jac_rows.push_back(int(model.jac_rows(i)));
-            jac_cols.push_back(int(model.jac_cols(i)));        
+            jac_cols.push_back(int(model.jac_cols(i)));
         }
     
     for (size_t i = 0; i < model.mas_cols.size(); i++)

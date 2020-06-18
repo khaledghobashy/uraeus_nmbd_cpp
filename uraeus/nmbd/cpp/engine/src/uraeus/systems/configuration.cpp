@@ -27,6 +27,7 @@ std::map<std::string, void (ConfigurationAssembler::*)(rapidjson::Value::ConstMe
 {
     {"Cylinder_Geometry", &ConfigurationAssembler::Cylinder_Geometry},
     {"Triangular_Prism", &ConfigurationAssembler::Triangular_Prism},
+    {"Sphere_Geometry", &ConfigurationAssembler::Sphere_Geometry},
     {"Composite_Geometry", &ConfigurationAssembler::Composite_Geometry},
     {"array", &ConfigurationAssembler::Array},
     {"Mirrored", &ConfigurationAssembler::Mirrored},
@@ -318,6 +319,42 @@ void ConfigurationAssembler::Cylinder_Geometry(rapidjson::Value::ConstMemberIter
 
 };
 // ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Sphere_Geometry Constructor
+// -----------------------------
+void ConfigurationAssembler::Sphere_Geometry(rapidjson::Value::ConstMemberIterator item)
+{
+    const rapidjson::Value& value = item->value["args"];
+    std::string elementName = item->name.GetString();
+
+    std::string p1_name = value[0].GetString();
+    std::string ro_name = value[1].GetString();
+
+    Eigen::Vector3d p1;
+    double ro;
+
+    this->get(p1_name, p1);
+    this->get(ro_name, ro);
+
+    auto geo = sphere_geometry(p1, ro);
+
+    config_map[elementName] = geo;
+
+    config_map[elementName + std::string(".R")] = geo.R;
+    config_map[elementName + std::string(".P")] = geo.P;
+    config_map[elementName + std::string(".J")] = geo.J;
+    config_map[elementName + std::string(".m")] = geo.m;
+
+    //std::cout << elementName << "\n";
+    //std::cout << geo.R << "\n";
+    //std::cout << geo.P << "\n";
+    //std::cout << geo.m << "\n";
+    //std::cout << geo.J << "\n\n";
+
+};
+// ----------------------------------------------------------------------------
+
 
 // ----------------------------------------------------------------------------
 // Triangular_Prism Constructor
