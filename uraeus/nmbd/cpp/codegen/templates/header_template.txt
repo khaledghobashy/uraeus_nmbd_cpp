@@ -17,6 +17,12 @@
 typedef std::map<std::string, std::string> Dict_SS;
 typedef std::map<std::string, int> Dict_SI;
 
+// Declaring the Topology Namespace.
+// =================================
+
+namespace $topology_name
+{
+
 // Declaring the Configuration Class and its numerical objects.
 // ============================================================
 class Configuration
@@ -85,6 +91,93 @@ public:
 
  };
 
+// ============================================================================
+//                     Constants Struct Decleration
+// ============================================================================
+struct Constants
+{
+public:
+
+    void assemble(Configuration& config);
+
+    $constants_symbols
+
+};
+
+// ============================================================================
+//                     Actuators Struct Decleration
+// ============================================================================
+struct Actuators
+{
+    Actuators();
+
+public:
+
+    $actuators_symbols
+    
+};
+
+// ============================================================================
+//                 Position Equations Struct Decleration
+// ============================================================================
+struct Pos_Eq
+{
+    void eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t);
+
+    $pos_common_expressions
+};
+
+// ============================================================================
+//                 Velocities Equations Struct Decleration
+// ============================================================================
+struct Vel_Eq
+{
+    void eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t);
+
+    $vel_common_expressions
+};
+
+// ============================================================================
+//                 Accelerations Equations Struct Decleration
+// ============================================================================
+struct Acc_Eq
+{
+    void eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t);
+
+    $acc_common_expressions
+};
+
+// ============================================================================
+//                 Forces Equations Struct Decleration
+// ============================================================================
+struct Frc_Eq
+{
+    void eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t, Configuration& config);
+
+    $frc_common_expressions
+};
+
+// ============================================================================
+//                 Jacobian Equations Struct Decleration
+// ============================================================================
+struct JacMatEqn
+{
+    void assemble(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols);
+    void eval(std::vector<Eigen::MatrixXd>& matricies, Coordinates& coord, Constants& consts, Actuators& acts, double t);
+
+    $jac_common_expressions
+};
+
+// ============================================================================
+//                 Mass Matrix Equations Struct Decleration
+// ============================================================================
+struct MassMatEqn
+{    
+    void assemble(Eigen::Ref<Eigen::VectorXi> cols);
+    void eval(std::vector<Eigen::MatrixXd>& matricies, Coordinates& coord, Constants& consts, Actuators& acts, double t, Configuration& config);
+
+    $mas_common_expressions
+};
 
 
 // ============================================================================
@@ -99,9 +192,10 @@ public:
     static const int n = $n;
     static const int nc = $nc;
     static const int nrows = $nve;
-    static const int ncols = 2 * $nodes;
-    std::vector<std::string> bodies_names $bodies_names;
-    std::vector<std::string> joints_names $joints_names;
+    static const int ncols = $ncols;
+
+    const std::vector<std::string> bodies_names $bodies_names;
+    const std::vector<std::string> joints_names $joints_names;
 
 public:
     // Topology Constructors.
@@ -122,10 +216,21 @@ public:
     // initializer list
     std::string prefix;
     Coordinates coord;
-    Configuration config;
 
     // These variables are initialized with their default constructor.
     double t = 0;
+
+    Configuration config;
+    Constants consts;
+    Actuators acts;
+
+    Pos_Eq pos_eq_obj;
+    Vel_Eq vel_eq_obj;
+    Acc_Eq acc_eq_obj;
+    Frc_Eq frc_eq_obj;
+
+    JacMatEqn jac_eq_obj;
+    MassMatEqn mas_eq_obj;
 
     Eigen::VectorXd pos_eq;
     Eigen::VectorXd vel_eq;
@@ -133,9 +238,9 @@ public:
     Eigen::VectorXd frc_eq;
     Eigen::VectorXd rct_eq;
 
-    Eigen::VectorXd jac_rows;
-    Eigen::VectorXd jac_cols;
-    Eigen::VectorXd mas_cols = Eigen::VectorXd::LinSpaced(ncols, 0, ncols-1);
+    Eigen::VectorXi jac_rows;
+    Eigen::VectorXi jac_cols;
+    Eigen::VectorXi mas_cols = Eigen::VectorXi::LinSpaced(ncols, 0, ncols-1);
 
     std::vector<Eigen::MatrixXd> jac_eq;
     std::vector<Eigen::MatrixXd> mas_eq;
@@ -146,7 +251,6 @@ public:
     void set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map);
     void map_indicies();
     void assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset);
-    void eval_constants();
 
 
     // Topology Equations Evaluators.
@@ -161,11 +265,8 @@ public:
 
 // Topology Bodies Indicies from the network graph.                    
 public:
-    $bodies
-
-
-// Configuration Constants.
-public:    
-    $constants
+    $bodies_indices
 
 };
+
+}; // end namespace

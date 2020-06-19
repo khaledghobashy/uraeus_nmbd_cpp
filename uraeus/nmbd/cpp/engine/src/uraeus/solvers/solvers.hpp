@@ -161,14 +161,17 @@ void Solver<T>::initialize()
     model.initialize();
     for (size_t i = 0; i < model.jac_rows.size(); i++)
         {
-            jac_rows.push_back(int(model.jac_rows(i)));
-            jac_cols.push_back(int(model.jac_cols(i)));
+            jac_rows.emplace_back(model.jac_rows(i));
+            jac_cols.emplace_back(model.jac_cols(i));
         }
     
     for (size_t i = 0; i < model.mas_cols.size(); i++)
         {
-            mas_cols.push_back(int(model.mas_cols(i)));
+            mas_cols.emplace_back(model.mas_cols(i));
         }
+    
+    for (const auto& i : jac_rows ) { std::cout << "i = " << i << "\n";};
+   
 
 };
 
@@ -204,7 +207,11 @@ Eigen::VectorXd Solver<T>::eval_frc_eq()
 template<class T>
 void Solver<T>::eval_jac_eq()
 {   
+    //std::cout << "calling 'model.eval_jac()' \n";
+    model.jac_eq.clear();
     model.eval_jac_eq();
+
+    //for (const auto& i : model.jac_eq ) { std::cout << "mat = " << i << "\n";};
     JacobianAssembler.Assemble(Jacobian, model.jac_eq);
     //SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
 };
@@ -212,6 +219,7 @@ void Solver<T>::eval_jac_eq()
 template<class T>
 void Solver<T>::eval_mas_eq()
 {   
+    model.mas_eq.clear();
     model.eval_mas_eq();
     MassAssembler.Assemble(MassMatrix, model.mas_eq);
     //SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
@@ -297,7 +305,7 @@ void Solver<T>::Solve()
     auto& dt = step_size;
     auto samples = time_array.size();
     
-    //std::cout << "Setting Initial Position History" << "\n";
+    std::cout << "Setting Initial Position History" << "\n";
     pos_history.emplace_back(q);
 
     Eigen::VectorXd guess(model.n);
@@ -308,18 +316,18 @@ void Solver<T>::Solve()
     lgr_history.reserve(samples);
     rct_history.reserve(samples);
 
-    //std::cout << "Computing Jacobian" << "\n";
+    std::cout << "Computing Jacobian" << "\n";
     eval_jac_eq();
     //std::cout << "Jacobian =  \n" << A << "\n";
-    //std::cout << "Factorizing Jacobian" << "\n";
+    std::cout << "Factorizing Jacobian" << "\n";
     SparseSolver.compute(Jacobian);
 
-    //std::cout << "Solving for Velocity" << "\n";
+    std::cout << "Solving for Velocity" << "\n";
     qd << SparseSolver.solve(-eval_vel_eq());
-    //std::cout << "Storing Generalized Velocities" << "\n";
+    std::cout << "Storing Generalized Velocities" << "\n";
     vel_history.emplace_back(qd);
     
-    //std::cout << "Solving for Accelerations" << "\n";
+    std::cout << "Solving for Accelerations" << "\n";
     qdd << SparseSolver.solve(-eval_acc_eq());
     acc_history.emplace_back(qdd);
 
@@ -331,7 +339,7 @@ void Solver<T>::Solve()
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
 
-    //std::cout << "\nRunning System Kinematic Analysis: " << "\n";
+    std::cout << "\nRunning System Kinematic Analysis: " << "\n";
     for (size_t i = 1; i < samples; i++)
     {
         print_progress(begin, samples, i);
