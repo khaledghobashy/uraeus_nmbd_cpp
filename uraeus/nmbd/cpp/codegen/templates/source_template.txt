@@ -235,11 +235,13 @@ void Topology::eval_frc_eq()
 
 void Topology::eval_jac_eq()
 {
+    jac_eq.clear();
     jac_eq_obj.eval(jac_eq, coord, consts, acts, t);
 };
 
 void Topology::eval_mas_eq()
 {
+    mas_eq.clear();
     mas_eq_obj.eval(mas_eq, coord, consts, acts, t, config);
 };
 
