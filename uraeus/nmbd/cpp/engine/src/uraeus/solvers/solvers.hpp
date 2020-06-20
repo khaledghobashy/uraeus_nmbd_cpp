@@ -87,7 +87,7 @@ public:
 
     void solve_lgr_multipliers();
 
-    void solve_constraints(Eigen::VectorXd& guess);
+    void solve_constraints();
     void Solve();
 
     void ExportResultsCSV(std::string location, std::string name, int id);
@@ -183,13 +183,8 @@ Eigen::VectorXd Solver<T>::eval_frc_eq()
 template<class T>
 void Solver<T>::eval_jac_eq()
 {   
-    //std::cout << "calling 'model.eval_jac()' \n";
-    model.jac_eq.clear();
     model.eval_jac_eq();
-
-    //for (const auto& i : model.jac_eq ) { std::cout << "mat = " << i << "\n";};
     JacobianAssembler.Assemble(Jacobian, model.jac_eq);
-    //SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
 };
 
 template<class T>
@@ -213,15 +208,15 @@ void Solver<T>::solve_lgr_multipliers()
     eval_mas_eq();
     Eigen::VectorXd ext_frc = eval_frc_eq();
     Eigen::VectorXd inertia = MassMatrix * qdd;
-    Eigen::VectorXd&& rhs = ext_frc - inertia;
+    Eigen::VectorXd rhs = ext_frc - inertia;
     SparseSolver.compute(Jacobian.transpose());
-    lgr << SparseSolver.solve(rhs);
+    lgr = SparseSolver.solve(rhs);
     //std::cout << (MassMatrix * qdd).transpose() << "\n\n";
     //std::cout << eval_frc_eq().transpose() << "\n\n";
 };
 
 template<class T>
-void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
+void Solver<T>::solve_constraints()
 {    
     // Creating a SparseSolver object.
     //std::cout << "Declaring SparseLU" << "\n";
@@ -229,7 +224,7 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
 
     //std::cout << "Setting Guess" << "\n";
     //std::cout << guess << "\n";
-    q << guess;
+    //q = guess;
     //std::cout << "Evaluating Pos_Eq " << "\n";
     auto&& b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
@@ -245,8 +240,9 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
     while (error.norm() >= 1e-5)
     {
         //std::cout << "Error e = " << error.norm() << "\n";
-        guess += error;
-        q << guess;
+        //guess += error;
+        //q = guess;
+        q += error;
         b = eval_pos_eq();
         error = SparseSolver.solve(-b);
 
@@ -259,14 +255,14 @@ void Solver<T>::solve_constraints(Eigen::VectorXd &guess)
 
         if (itr>50)
         {
-            std::cout << "ITERATIONS EXCEEDED!! => " << itr << "\n" ;
+            std::cout << "ITERATIONS EXCEEDED!! " << itr << "\n" ;
             break;
         };
 
         itr++;
     };
     
-    q = guess;
+    //q = guess;
     eval_jac_eq();
     SparseSolver.compute(Jacobian);
 };
@@ -280,35 +276,32 @@ void Solver<T>::Solve()
     
     auto& dt = step_size;
     auto samples = time_array.size();
-    
-    std::cout << "Setting Initial Position History" << "\n";
-    pos_history.emplace_back(q);
-
-    Eigen::VectorXd guess(model.n);
 
     pos_history.reserve(samples);
     vel_history.reserve(samples);
     acc_history.reserve(samples);
     lgr_history.reserve(samples);
     rct_history.reserve(samples);
+    
+    //Eigen::VectorXd guess(model.n);
 
-    std::cout << "Computing Jacobian" << "\n";
+    //std::cout << "Computing Jacobian" << "\n";
     eval_jac_eq();
-    //std::cout << "Jacobian =  \n" << A << "\n";
-    std::cout << "Factorizing Jacobian" << "\n";
+    //std::cout << "Factorizing Jacobian" << "\n";
     SparseSolver.compute(Jacobian);
 
-    std::cout << "Solving for Velocity" << "\n";
-    qd << SparseSolver.solve(-eval_vel_eq());
-    std::cout << "Storing Generalized Velocities" << "\n";
-    vel_history.emplace_back(qd);
+    //std::cout << "Solving for Velocity" << "\n";
+    qd = SparseSolver.solve(-eval_vel_eq());
     
-    std::cout << "Solving for Accelerations" << "\n";
-    qdd << SparseSolver.solve(-eval_acc_eq());
-    acc_history.emplace_back(qdd);
+    //std::cout << "Solving for Accelerations" << "\n";
+    qdd = SparseSolver.solve(-eval_acc_eq());
 
     solve_lgr_multipliers();
     eval_rct_eq();
+
+    pos_history.emplace_back(q);
+    vel_history.emplace_back(qd);
+    acc_history.emplace_back(qdd);
     lgr_history.emplace_back(lgr);
     rct_history.emplace_back(model.rct_eq);
 
@@ -323,9 +316,9 @@ void Solver<T>::Solve()
         t = time_array(i) ;
         set_time(t) ;
 
-        guess = q + (qd * dt) + (0.5 * qdd * pow(dt, 2));
+        q += (qd * dt) + (0.5 * qdd * (dt*dt));
 
-        solve_constraints(guess);
+        solve_constraints();
 
         qd  = SparseSolver.solve(-eval_vel_eq());
         qdd = SparseSolver.solve(-eval_acc_eq());
