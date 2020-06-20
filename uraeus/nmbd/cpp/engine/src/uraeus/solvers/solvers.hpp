@@ -49,7 +49,10 @@ public:
     SparseBlock Jacobian;
     SparseBlock MassMatrix;
 
-    T model;
+    T model {"", q, qd, qdd, lgr};
+
+    MatrixAssembler JacobianAssembler {model.jac_rows, model.jac_cols};
+    MatrixAssembler MassAssembler {model.mas_cols, model.mas_cols};
     
     double t;
     double step_size;
@@ -61,18 +64,8 @@ public:
     std::vector<Eigen::VectorXd> lgr_history;
     std::vector<Eigen::VectorXd> rct_history;
 
-    std::vector<int> jac_rows;
-    std::vector<int> jac_cols;
-    std::vector<int> mas_cols;
-
     Eigen::SparseLU<SparseBlock> SparseSolver;
 
-
-    Container jac_triplets;
-    MatrixAssembler JacobianAssembler;
-
-    Container mas_triplets;
-    MatrixAssembler MassAssembler;
 
 public:
 
@@ -120,10 +113,7 @@ Solver<T>::Solver()
         qdd(T::n),
         lgr(T::nc),
         Jacobian(T::nc, T::n),
-        MassMatrix(T::n, T::n),
-        model("", q, qd, qdd, lgr),
-        JacobianAssembler(jac_rows, jac_cols, jac_triplets),
-        MassAssembler(mas_cols, mas_cols, mas_triplets)
+        MassMatrix(T::n, T::n)
 {
     results_names[0] = "_pos";
     results_names[1] = "_vel";
@@ -159,20 +149,6 @@ template<class T>
 void Solver<T>::initialize()
 {
     model.initialize();
-    for (size_t i = 0; i < model.jac_rows.size(); i++)
-        {
-            jac_rows.emplace_back(model.jac_rows(i));
-            jac_cols.emplace_back(model.jac_cols(i));
-        }
-    
-    for (size_t i = 0; i < model.mas_cols.size(); i++)
-        {
-            mas_cols.emplace_back(model.mas_cols(i));
-        }
-    
-    for (const auto& i : jac_rows ) { std::cout << "i = " << i << "\n";};
-   
-
 };
 
 

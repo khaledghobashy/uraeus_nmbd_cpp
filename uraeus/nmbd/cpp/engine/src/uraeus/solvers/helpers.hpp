@@ -13,13 +13,10 @@
 
 
 typedef Eigen::SparseMatrix<double, Eigen::ColMajor> SparseBlock;
-typedef std::vector<int> Indicies;
 typedef std::vector<Eigen::MatrixXd> DataBlocks;
-typedef std::vector<Eigen::Triplet<double>> Container;
+typedef std::vector<Eigen::Triplet<double>> TripletList;
 
 double derivative(std::function<double(double)> func, double x, int order);
-void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
-void DenseAssembler(Eigen::MatrixXd& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
 
 
 class MatrixAssembler
@@ -27,11 +24,13 @@ class MatrixAssembler
 
 public:
     MatrixAssembler() = delete;
-    MatrixAssembler(Indicies& rows, Indicies& cols, Container& container);
+    MatrixAssembler(Eigen::Ref<Eigen::VectorXi> rows,
+                    Eigen::Ref<Eigen::VectorXi> cols);
 
-    Indicies& rows;
-    Indicies& cols;
-    Container& container;
+    Eigen::Ref<Eigen::VectorXi> rows;
+    Eigen::Ref<Eigen::VectorXi> cols;
+    
+    TripletList container;
 
 public:
     void Assemble(SparseBlock& matrix, DataBlocks& data);
