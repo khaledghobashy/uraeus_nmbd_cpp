@@ -43,13 +43,15 @@ void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data)
 
         prev_cols_size = 7 * (vj/2) ;
         if (n == 4) {prev_cols_size += 3;};
+
+        if (mat_block.isZero(1e-4)) {continue;};
         
         for (Eigen::Index j = 0; j < n; j++)
         {
             for (Eigen::Index i = 0; i < m; i++)
             {
-                auto& value = mat_block(i, j);
-                if (std::abs(value) > 1e-5)
+                const auto& value = mat_block(i, j);
+                if (std::abs(value) > 1e-4)
                 {
                     container.emplace_back(
                         Eigen::Triplet<double>(
