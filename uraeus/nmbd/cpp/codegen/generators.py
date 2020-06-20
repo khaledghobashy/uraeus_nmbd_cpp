@@ -240,7 +240,7 @@ class template_codegen(abstract_generator):
         
         default_functions_text = \
         '''
-        Soln.model.config.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
+        Soln.model.acts.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
         '''
        
         default_functions = [default_functions_text.format(UF = i)\
@@ -256,7 +256,7 @@ class template_codegen(abstract_generator):
         '''
         void Simulation::set_{UF}(std::function<double(double)> func)
         {{
-            Soln.model.config.{UF} = func;
+            Soln.model.acts.{UF} = func;
         }};
         '''
 
@@ -391,73 +391,49 @@ class template_codegen(abstract_generator):
 
         # Position Constraint Equations Struct
         # ====================================
-        pos_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.pos_rep])
-        pos_cse_expr = textwrap.indent(pos_cse_expr, 4*' ').lstrip()
-
         pos_eq_repl = \
             {
-                "pos_common_expressions": pos_cse_expr,
+                "pos_common_expressions": self._get_cse_expr("pos"),
             }
         # --------------------------------------------------------
 
         # Velocities Constraint Equations Struct
         # ======================================
-        vel_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.vel_rep])
-        vel_cse_expr = textwrap.indent(vel_cse_expr, 4*' ').lstrip()
-
         vel_eq_repl = \
             {
-                "vel_common_expressions": vel_cse_expr,
+                "vel_common_expressions": self._get_cse_expr("vel"),
             }
         # --------------------------------------------------------
 
         # Acceleration Constraint Equations Struct
         # ========================================
-        acc_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.acc_rep])
-        acc_cse_expr = textwrap.indent(acc_cse_expr, 4*' ').lstrip()
-
         acc_eq_repl = \
             {
-                "acc_common_expressions": acc_cse_expr,
+                "acc_common_expressions": self._get_cse_expr("acc"),
             }
         # --------------------------------------------------------
         
         # Forces Vector Equations Struct
         # ===============================
-        frc_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.frc_rep])
-        frc_cse_expr = textwrap.indent(frc_cse_expr, 4*' ').lstrip()
-
         frc_eq_repl = \
             {
-                "frc_common_expressions": frc_cse_expr,
+                "frc_common_expressions": self._get_cse_expr("frc"),
             }
         # --------------------------------------------------------
 
         # Constraints Jacobian Equations Struct
         # =====================================
-        jac_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.jac_rep])
-        jac_cse_expr = textwrap.indent(jac_cse_expr, 4*' ').lstrip()
-
         jac_eq_repl = \
             {
-                "jac_common_expressions": jac_cse_expr,
+                "jac_common_expressions": self._get_cse_expr("jac"),
             }
         # --------------------------------------------------------
 
         # Mass Matrix Equations Struct
         # ============================
-        mas_cse_expr = '\n'.join(['%s ;'%p._print(i[0], declare=True) 
-            for i in self.mbs.mass_rep])
-        mas_cse_expr = textwrap.indent(mas_cse_expr, 4*' ').lstrip()
-
         mas_eq_repl = \
             {
-                "mas_common_expressions": mas_cse_expr,
+                "mas_common_expressions": self._get_cse_expr("mass"),
             }
         # --------------------------------------------------------
 
@@ -478,7 +454,22 @@ class template_codegen(abstract_generator):
 
         return template_text
 
+    def _get_cse_expr(self, eq_initial):
+        p = self.printer
+        replacements = getattr(self.mbs, "%s_rep"%eq_initial)
 
+        declerations_list = []
+        for repl in replacements:
+            symbol, expr = repl
+            symbol_deceleration = '%s ;'%p._print(symbol, declare=True)
+            if str(expr) == 't':
+                symbol_deceleration = 'double %s ;'%p._print(symbol)
+            declerations_list.append(symbol_deceleration)
+        
+        cse_expr = '\n'.join(declerations_list)
+        cse_expr = textwrap.indent(cse_expr, 4*' ').lstrip()
+
+        return cse_expr
 
     def _write_source_content(self):
 
@@ -618,6 +609,9 @@ class template_codegen(abstract_generator):
         num_repl_text = re.sub(config_pattern, config_inserter, num_repl_text)
         num_expr_text = re.sub(config_pattern, config_inserter, num_expr_text)
         
+        num_repl_text = num_repl_text.replace("config.UF", "acts.UF")
+        num_expr_text = num_expr_text.replace("config.UF", "acts.UF")
+
         # Indenting the text block for propper class and function indentation.
         num_repl_text = textwrap.indent(num_repl_text, 4*' ').lstrip() 
         num_expr_text = textwrap.indent(num_expr_text, (4 if std_vector else 8)*' ').lstrip()
@@ -722,7 +716,7 @@ class template_codegen(abstract_generator):
             f'R_jac_{joint_name} << %s'%R_blocks_text,
             f'P_jac_{joint_name} << %s'%P_blocks_text,
             f'Eigen::VectorXd F_{joint_name} = -R_jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name});',
             ]
             
@@ -783,10 +777,10 @@ class template_codegen(abstract_generator):
 
             text = [
             f'// Joint Name : {joint_name}',
-            f'const Eigen::MatrixXd& Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
+            f'const Eigen::MatrixXd Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
             f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'const Eigen::VectorXd& F_{joint_name} = Q_{joint_name}.segment(0, 3);',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            f'const Eigen::VectorXd F_{joint_name} = Q_{joint_name}.segment(0, 3);',
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
             ]
             
