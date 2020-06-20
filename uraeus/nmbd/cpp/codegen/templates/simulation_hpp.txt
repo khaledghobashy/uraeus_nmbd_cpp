@@ -4,6 +4,8 @@
 #include "uraeus/solvers/solvers.hpp"
 #include "$topology_name.hpp"
 
+using namespace $topology_name;
+
 class Simulation
 {
 
