@@ -105,7 +105,7 @@ void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_
     set_mapping(indicies_map, interface_map);
 
     jac_rows << $jac_rows;
-    jac_rows += (rows_offset * Eigen::VectorXd::Ones(jac_rows.size()) );
+    jac_rows += (rows_offset * Eigen::VectorXi::Ones(jac_rows.size()) );
 
     jac_cols << 
         $jac_cols;

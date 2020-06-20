@@ -77,7 +77,7 @@ double derivative(std::function<double(double)> func, double x, int order = 1)
 
 };
 
-
+/*
 void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data)
 {
     //Declaring Local Variables
@@ -213,5 +213,5 @@ void DenseAssembler(Eigen::MatrixXd& mat, Indicies& rows, Indicies& cols, DataBl
     }
 };
 
-
+*/
 

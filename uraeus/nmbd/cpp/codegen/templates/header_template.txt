@@ -133,9 +133,9 @@ public:
     Eigen::VectorXd frc_eq;
     Eigen::VectorXd rct_eq;
 
-    Eigen::VectorXd jac_rows;
-    Eigen::VectorXd jac_cols;
-    Eigen::VectorXd mas_cols = Eigen::VectorXd::LinSpaced(ncols, 0, ncols-1);
+    Eigen::VectorXi jac_rows;
+    Eigen::VectorXi jac_cols;
+    Eigen::VectorXi mas_cols = Eigen::VectorXi::LinSpaced(ncols, 0, ncols-1);
 
     std::vector<Eigen::MatrixXd> jac_eq;
     std::vector<Eigen::MatrixXd> mas_eq;

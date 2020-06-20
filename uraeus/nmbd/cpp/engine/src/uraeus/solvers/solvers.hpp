@@ -49,7 +49,7 @@ public:
     SparseBlock Jacobian;
     SparseBlock MassMatrix;
 
-    T model;
+    T model = T("", q, qd, qdd, lgr);
     
     double t;
     double step_size;
@@ -61,18 +61,13 @@ public:
     std::vector<Eigen::VectorXd> lgr_history;
     std::vector<Eigen::VectorXd> rct_history;
 
-    std::vector<int> jac_rows;
-    std::vector<int> jac_cols;
-    std::vector<int> mas_cols;
-
     Eigen::SparseLU<SparseBlock> SparseSolver;
 
-
     Container jac_triplets;
-    MatrixAssembler JacobianAssembler;
-
     Container mas_triplets;
-    MatrixAssembler MassAssembler;
+
+    MatrixAssembler JacobianAssembler {model.jac_rows, model.jac_cols, jac_triplets};
+    MatrixAssembler MassAssembler {model.mas_cols, model.mas_cols, mas_triplets};
 
 public:
 
@@ -120,10 +115,7 @@ Solver<T>::Solver()
         qdd(T::n),
         lgr(T::nc),
         Jacobian(T::nc, T::n),
-        MassMatrix(T::n, T::n),
-        model("", q, qd, qdd, lgr),
-        JacobianAssembler(jac_rows, jac_cols, jac_triplets),
-        MassAssembler(mas_cols, mas_cols, mas_triplets)
+        MassMatrix(T::n, T::n)
 {
     results_names[0] = "_pos";
     results_names[1] = "_vel";
@@ -159,17 +151,6 @@ template<class T>
 void Solver<T>::initialize()
 {
     model.initialize();
-    for (size_t i = 0; i < model.jac_rows.size(); i++)
-        {
-            jac_rows.push_back(int(model.jac_rows(i)));
-            jac_cols.push_back(int(model.jac_cols(i)));
-        }
-    
-    for (size_t i = 0; i < model.mas_cols.size(); i++)
-        {
-            mas_cols.push_back(int(model.mas_cols(i)));
-        }
-
 };
 
 
@@ -206,7 +187,6 @@ void Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();
     JacobianAssembler.Assemble(Jacobian, model.jac_eq);
-    //SparseAssembler(Jacobian, jac_rows, jac_cols, model.jac_eq);
 };
 
 template<class T>
@@ -214,7 +194,6 @@ void Solver<T>::eval_mas_eq()
 {   
     model.eval_mas_eq();
     MassAssembler.Assemble(MassMatrix, model.mas_eq);
-    //SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
 };
 
 template<class T>
