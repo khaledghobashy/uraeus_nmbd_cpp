@@ -2,9 +2,11 @@
 #include "helpers.hpp"
 
 
-MatrixAssembler::MatrixAssembler(Indicies& rows, Indicies& cols, Container& container)
+MatrixAssembler::MatrixAssembler(
+    Eigen::Ref<Eigen::VectorXi> rows,
+    Eigen::Ref<Eigen::VectorXi> cols)
     :
-        rows(rows), cols(cols), container(container)
+        rows(rows), cols(cols)
     {
         container.reserve(rows.size());
     };
@@ -25,9 +27,9 @@ void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data)
     //std::cout << "Starting Main for loop" << "\n";
     for (Eigen::Index v = 0; v < nnz; v++)
     {
-        auto& vi = rows[v];
-        auto& vj = cols[v];
-        auto& mat_block = data[v]; 
+        const auto& vi = rows[v];
+        const auto& vj = cols[v];
+        const auto& mat_block = data[v]; 
 
         if (vi != row_counter)
         {
@@ -41,16 +43,21 @@ void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data)
 
         prev_cols_size = 7 * (vj/2) ;
         if (n == 4) {prev_cols_size += 3;};
+
+        if (mat_block.isZero(1e-4)) {continue;};
         
         for (Eigen::Index j = 0; j < n; j++)
         {
             for (Eigen::Index i = 0; i < m; i++)
             {
-                auto& value = mat_block(i, j);
-                if (std::abs(value) > 1e-5)
+                const auto& value = mat_block(i, j);
+                if (std::abs(value) > 1e-4)
                 {
                     container.emplace_back(
-                        Eigen::Triplet<double>(prev_rows_size+i, prev_cols_size+j, value));
+                        Eigen::Triplet<double>(
+                            prev_rows_size + i, 
+                            prev_cols_size + j, 
+                            value));
                 }
             }
         }
@@ -77,7 +84,7 @@ double derivative(std::function<double(double)> func, double x, int order = 1)
 
 };
 
-/*
+/* 
 void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data)
 {
     //Declaring Local Variables
@@ -214,4 +221,3 @@ void DenseAssembler(Eigen::MatrixXd& mat, Indicies& rows, Indicies& cols, DataBl
 };
 
 */
-

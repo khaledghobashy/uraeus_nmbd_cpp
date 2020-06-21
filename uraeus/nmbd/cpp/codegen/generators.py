@@ -240,7 +240,7 @@ class template_codegen(abstract_generator):
         
         default_functions_text = \
         '''
-        Soln.model.config.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
+        Soln.model.acts.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
         '''
        
         default_functions = [default_functions_text.format(UF = i)\
@@ -256,7 +256,7 @@ class template_codegen(abstract_generator):
         '''
         void Simulation::set_{UF}(std::function<double(double)> func)
         {{
-            Soln.model.config.{UF} = func;
+            Soln.model.acts.{UF} = func;
         }};
         '''
 
@@ -286,19 +286,61 @@ class template_codegen(abstract_generator):
 
         return text
     
+
     def _write_header_content(self):
+        import sympy as sm
         printer = p = self.printer
         indent = ''
 
-        header_template = os.path.join(os.path.dirname(__file__), "templates/header_template.txt")
+        template = os.path.join(
+            os.path.dirname(__file__), 
+            "templates/header_template.txt")
 
-        with open(header_template, "r") as f:
+        with open(template, "r") as f:
             template_text = Template(f.read())
 
-        primary_aruments = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
+        # Configuration struct variables
+        # ============================== 
+        primary_arguments = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
                                       set(self.mbs.arguments_symbols)])
-        primary_aruments = textwrap.indent(primary_aruments, 4*' ').lstrip()
+        primary_arguments = textwrap.indent(primary_arguments, 4*' ').lstrip()
         
+        configuration_repl = \
+        {
+            "primary_arguments": primary_arguments
+        }
+
+        # Coordinates Struct variables
+        # ============================
+        coordinates = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True)
+            for exp in self.gen_coordinates_exp])
+        coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
+
+        velocities = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) 
+            for exp in self.gen_velocities_exp])
+        velocities = textwrap.indent(velocities, 4*' ').lstrip()
+
+        accelerations = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True)
+            for exp in self.gen_accelerations_exp])
+        accelerations = textwrap.indent(accelerations, 4*' ').lstrip()
+
+        lagrange = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) 
+            for exp in self.lagrange_multipliers_exp])
+        lagrange = textwrap.indent(lagrange, 4*' ').lstrip()
+        lagrange = lagrange.replace('Lambda', 'lgr')
+
+        coordinates_repl = \
+        {
+            "coordinates": coordinates,
+            "velocities": velocities,
+            "accelerations": accelerations,
+            "lagrange": lagrange
+        }
+        # --------------------------------------------------------
+
+
+        # Topology Class variables
+        # ============================== 
         bodies_indices = '\n'.join(['int %s ;'%i for i in self.bodies])
         bodies_indices = textwrap.indent(bodies_indices, 4*' ').lstrip()
 
@@ -308,45 +350,126 @@ class template_codegen(abstract_generator):
         joints_names = ', '.join(['"%s"'%i for i in self.joints_names])
         joints_names = textwrap.indent('{%s}'%joints_names, 4*' ').lstrip()
 
-        coordinates = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
-                                 self.gen_coordinates_exp])
-        coordinates = textwrap.indent(coordinates, 4*' ').lstrip()
+        topology_repl = \
+        {
+            "n": self.mbs.n,
+            "nc": self.mbs.nc,
+            "nve": self.mbs.nve,
+            "ncols": 2 * (self.mbs.n // 7),
+            "topology_name": self.mbs.name,
+            "bodies_indices": bodies_indices,
+            "bodies_names": bodies_names,
+            "joints_names": joints_names
+        }
+        # --------------------------------------------------------
 
-        velocities = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in 
-                                self.gen_velocities_exp])
-        velocities = textwrap.indent(velocities, 4*' ').lstrip()
 
-        accelerations = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
-                                   self.gen_accelerations_exp])
-        accelerations = textwrap.indent(accelerations, 4*' ').lstrip()
-
-        lagrange = '\n'.join(['%s'%p._print(exp, declare=False, is_ref=True) for exp in
-                                   self.lagrange_multipliers_exp])
-        lagrange = textwrap.indent(lagrange, 4*' ').lstrip()
-        lagrange = lagrange.replace('Lambda', 'lgr')
-
-        constants = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
+        # Constants struct variables
+        # ============================== 
+        constants_symbols = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
                                set(self.mbs.constants_symbols)])
-        constants = textwrap.indent(constants, 4*' ').lstrip()
+        constants_symbols = textwrap.indent(constants_symbols, 4*' ').lstrip()
 
+        constants_repl = \
+        {
+            "constants_symbols": constants_symbols
+        }
+
+        # --------------------------------------------------------
+
+        # Actuators struct variables
+        # ============================== 
+        actuators_symbols = '\n'.join(['%s ;'%p._print(i, declare=True) for i in 
+                               set(self.mbs.arguments_symbols) 
+                               if str(i).startswith("UF_")])
+        actuators_symbols = textwrap.indent(actuators_symbols, 4*' ').lstrip()
+
+        actuators_repl = \
+        {
+            "actuators_symbols": actuators_symbols
+        }
+
+        # Position Constraint Equations Struct
+        # ====================================
+        pos_eq_repl = \
+            {
+                "pos_common_expressions": self._get_cse_expr("pos"),
+            }
+        # --------------------------------------------------------
+
+        # Velocities Constraint Equations Struct
+        # ======================================
+        vel_eq_repl = \
+            {
+                "vel_common_expressions": self._get_cse_expr("vel"),
+            }
+        # --------------------------------------------------------
+
+        # Acceleration Constraint Equations Struct
+        # ========================================
+        acc_eq_repl = \
+            {
+                "acc_common_expressions": self._get_cse_expr("acc"),
+            }
+        # --------------------------------------------------------
+        
+        # Forces Vector Equations Struct
+        # ===============================
+        frc_eq_repl = \
+            {
+                "frc_common_expressions": self._get_cse_expr("frc"),
+            }
+        # --------------------------------------------------------
+
+        # Constraints Jacobian Equations Struct
+        # =====================================
+        jac_eq_repl = \
+            {
+                "jac_common_expressions": self._get_cse_expr("jac"),
+            }
+        # --------------------------------------------------------
+
+        # Mass Matrix Equations Struct
+        # ============================
+        mas_eq_repl = \
+            {
+                "mas_common_expressions": self._get_cse_expr("mass"),
+            }
+        # --------------------------------------------------------
+
+        # Template replacements
+        # =====================
         template_text = template_text.safe_substitute(
-            n = self.mbs.n,
-            nc = self.mbs.nc,
-            nve = self.mbs.nve,
-            nodes = len(self.bodies),
-            primary_arguments = primary_aruments,
-            bodies = bodies_indices,
-            bodies_names = bodies_names,
-            joints_names = joints_names,
-            coordinates = coordinates,
-            velocities = velocities,
-            accelerations = accelerations,
-            lagrange = lagrange,
-            constants = constants)
+            **topology_repl,
+            **coordinates_repl,
+            **constants_repl,
+            **configuration_repl,
+            **actuators_repl,
+            **pos_eq_repl,
+            **vel_eq_repl,
+            **acc_eq_repl,
+            **frc_eq_repl,
+            **jac_eq_repl,
+            **mas_eq_repl)
 
         return template_text
 
+    def _get_cse_expr(self, eq_initial):
+        p = self.printer
+        replacements = getattr(self.mbs, "%s_rep"%eq_initial)
 
+        declerations_list = []
+        for repl in replacements:
+            symbol, expr = repl
+            symbol_deceleration = '%s ;'%p._print(symbol, declare=True)
+            if str(expr) == 't':
+                symbol_deceleration = 'double %s ;'%p._print(symbol)
+            declerations_list.append(symbol_deceleration)
+        
+        cse_expr = '\n'.join(declerations_list)
+        cse_expr = textwrap.indent(cse_expr, 4*' ').lstrip()
+
+        return cse_expr
 
     def _write_source_content(self):
 
@@ -358,8 +481,6 @@ class template_codegen(abstract_generator):
         with open(source_template, "r") as f:
             template_text = Template(f.read())
         
-        file_name = self.name
-
         jac_rows, jac_cols, nnz = self.get_jac_data()
         indicies_map, virtuals  = self.get_indicies_mapping()
         primary_arguments, q_equalities, qd_equalities  = self.get_coordinates_equalities()
@@ -376,7 +497,7 @@ class template_codegen(abstract_generator):
         rct_expressions2, rct_return2 = self.get_reactions_equations2()
 
         template_text = template_text.safe_substitute(
-            file_name = file_name,
+            topology_name = self.name,
             n = self.mbs.n,
             nnz = nnz,
             n_joints = len(self.joints_names),
@@ -404,7 +525,9 @@ class template_codegen(abstract_generator):
             rct_expressions1 = '//rct_expressions',
             rct_return1 = '//rct_return',
             rct_expressions2 = rct_expressions2,
-            rct_return2 = rct_return2)
+            rct_return2 = rct_return2,
+            jac_submatrices = '// TODO',
+            mas_submatrices = '//  TODO')
 
         return template_text
     
@@ -443,12 +566,15 @@ class template_codegen(abstract_generator):
         
         # Extract the numerical format of the replacements and expressions into
         # a list of string expressions.
-        num_repl_list = ['%s'%(printer._print(exp, declare=True, is_ref=False)) for exp in replacements_list]
+        num_repl_list = ['%s'%(printer._print(exp, declare=False, is_ref=False)) for exp in replacements_list]
         num_expr_list = [printer._print(exp) for exp in vector_data]
         
         # Joining the extracted strings to form a valid text block.
         num_repl_text = '\n'.join(num_repl_list)
-        num_expr_text = ',\n'.join(num_expr_list)
+        if std_vector:
+            num_expr_text = '\n'.join(["matricies.emplace_back(%s);"%i for i in num_expr_list])
+        else:
+            num_expr_text = ',\n'.join(num_expr_list)
 
         num_repl_text = re.sub(r'Eigen::Vector3d\s+([a-zA-Z_][a-zA-Z_0-9]*) = t ;',
                                r'double \1 = t ;', num_repl_text)
@@ -456,8 +582,12 @@ class template_codegen(abstract_generator):
         # Creating a regex pattern of strings that represents the variables
         # which need to be perfixed by a 'self.' to be referenced correctly.
         self_pattern = itertools.chain(self.runtime_symbols,)
-                                       #self.constants_symbols)
         self_pattern = '|'.join(self_pattern)
+
+        # Creating a regex pattern of strings that represents the variables
+        # which need to be perfixed by a 'consts.' to be referenced correctly.
+        consts_pattern = set(self.constants_symbols) - set(self.runtime_symbols)
+        consts_pattern = '|'.join(consts_pattern)
         
         # Creating a regex pattern of strings that represents the variables
         # which need to be perfixed by a 'config.' to be referenced correctly.
@@ -469,17 +599,23 @@ class template_codegen(abstract_generator):
         num_repl_text = re.sub(self_pattern, self_inserter, num_repl_text)
         num_expr_text = re.sub(self_pattern, self_inserter, num_expr_text)
         
+        # Performing the regex substitution with 'consts.'.
+        consts_inserter = self._insert_string('consts.')
+        num_repl_text = re.sub(consts_pattern, consts_inserter, num_repl_text)
+        num_expr_text = re.sub(consts_pattern, consts_inserter, num_expr_text)
+        
         # Performing the regex substitution with 'config.'.
         config_inserter = self._insert_string('config.')
         num_repl_text = re.sub(config_pattern, config_inserter, num_repl_text)
         num_expr_text = re.sub(config_pattern, config_inserter, num_expr_text)
         
+        num_repl_text = num_repl_text.replace("config.UF", "acts.UF")
+        num_expr_text = num_expr_text.replace("config.UF", "acts.UF")
+
         # Indenting the text block for propper class and function indentation.
         num_repl_text = textwrap.indent(num_repl_text, 4*' ').lstrip() 
-        num_expr_text = textwrap.indent(num_expr_text, 8*' ').lstrip()
+        num_expr_text = textwrap.indent(num_expr_text, (4 if std_vector else 8)*' ').lstrip()
         
-        num_expr_text = '{%s}'%num_expr_text if std_vector else num_expr_text
-
         return num_repl_text, num_expr_text
 
     def get_jac_data(self):
@@ -580,7 +716,7 @@ class template_codegen(abstract_generator):
             f'R_jac_{joint_name} << %s'%R_blocks_text,
             f'P_jac_{joint_name} << %s'%P_blocks_text,
             f'Eigen::VectorXd F_{joint_name} = -R_jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name});',
             ]
             
@@ -641,10 +777,10 @@ class template_codegen(abstract_generator):
 
             text = [
             f'// Joint Name : {joint_name}',
-            f'const Eigen::MatrixXd& Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
+            f'const Eigen::MatrixXd Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
             f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'const Eigen::VectorXd& F_{joint_name} = Q_{joint_name}.segment(0, 3);',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            f'const Eigen::VectorXd F_{joint_name} = Q_{joint_name}.segment(0, 3);',
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
             ]
             

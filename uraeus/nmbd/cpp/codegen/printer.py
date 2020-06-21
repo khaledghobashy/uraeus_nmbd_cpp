@@ -230,10 +230,11 @@ class printer(CXX11CodePrinter):
             lhs_name = self._print(expr[0], declare=declare)
             rhs_expr = self._print(expr[1])
             assign_operator = '='
-            if not declare and not is_ref:
+            if (not declare) and (not is_ref) :
                 try:
-                    expr[0].shape
-                    assign_operator = '<<'
+                    shape = expr[0].shape
+                    if (shape[0] > 4):
+                        assign_operator = '<<'
                 except AttributeError:
                     pass
             _expr = '%s %s %s ;'%(lhs_name, assign_operator, rhs_expr)
