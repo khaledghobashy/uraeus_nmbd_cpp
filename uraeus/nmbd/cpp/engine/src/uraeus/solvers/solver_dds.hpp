@@ -24,6 +24,9 @@ Authors:
 #include <fstream>
 #include <map>
 
+#include "eigen/Eigen/SparseLU"
+#include "eigen/Eigen/SparseQR"
+
 // Local Libraries Includes.
 #include "helpers.hpp"
 #include "utilities.hpp"
@@ -65,6 +68,7 @@ public:
     std::vector<Eigen::VectorXd> rct_history;
 
     Eigen::SparseLU<SparseBlock> SparseSolver;
+    Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
 
 public:
@@ -94,6 +98,8 @@ public:
     void ExportReactionsResults(std::string location, std::string name);
     void ExportLagrangeMultipliers(std::string location, std::string name);
 
+    void partition_system_coordinates();
+
 
 private:
     std::map<int, std::vector<Eigen::VectorXd>*> results;
@@ -101,6 +107,22 @@ private:
 
 };
 
+// ============================================================================ 
+//                         Dynamics METHODS IMPLEMENTATION
+// ============================================================================
+template<class T>
+void Solver<T>::partition_system_coordinates()
+{
+    QRSolver.compute(Jacobian);
+    Eigen::MatrixXd b(QRSolver.colsPermutation());
+    std::cout << "System rank : " << QRSolver.rank() << "\n";
+    std::cout << "Permutation Matrix Shape : " << QRSolver.colsPermutation().rows() << ", " << QRSolver.colsPermutation().cols() << "\n";
+    std::cout << "Permutation Matrix : \n" << b << "\n";
+    std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
+    std::cout << "Permutation Matrix Indices Size : " << QRSolver.colsPermutation().indices().size() << "\n";
+
+}
+ 
 
 // ============================================================================ 
 //                         CLASS METHODS IMPLEMENTATION
@@ -218,13 +240,6 @@ void Solver<T>::solve_lgr_multipliers()
 template<class T>
 void Solver<T>::solve_constraints()
 {    
-    // Creating a SparseSolver object.
-    //std::cout << "Declaring SparseLU" << "\n";
-    //Eigen::SparseLU<SparseBlock> SparseSolver;
-
-    //std::cout << "Setting Guess" << "\n";
-    //std::cout << guess << "\n";
-    //q = guess;
     //std::cout << "Evaluating Pos_Eq " << "\n";
     auto&& b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
@@ -240,8 +255,6 @@ void Solver<T>::solve_constraints()
     while (error.norm() >= 1e-5)
     {
         //std::cout << "Error e = " << error.norm() << "\n";
-        //guess += error;
-        //q = guess;
         q += error;
         b = eval_pos_eq();
         error = SparseSolver.solve(-b);
@@ -262,7 +275,6 @@ void Solver<T>::solve_constraints()
         itr++;
     };
     
-    //q = guess;
     eval_jac_eq();
     SparseSolver.compute(Jacobian);
 };

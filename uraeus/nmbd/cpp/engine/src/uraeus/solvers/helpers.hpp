@@ -8,7 +8,6 @@
 #include "eigen/Eigen/Dense"
 #include "eigen/Eigen/Eigen"
 #include "eigen/Eigen/Sparse"
-#include "eigen/Eigen/SparseLU"
 #include "boost/math/tools/numerical_differentiation.hpp"
 
 
