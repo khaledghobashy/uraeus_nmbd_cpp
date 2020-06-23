@@ -70,6 +70,10 @@ public:
     Eigen::SparseLU<SparseBlock> SparseSolver;
     Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
+    std::vector<Eigen::Index> coord_indices;
+    std::vector<Eigen::Triplet<double>> extra_triplets;
+
+
 
 public:
 
@@ -107,6 +111,28 @@ private:
 
 };
 
+void get_indices(Eigen::VectorXi indices, 
+                 std::vector<Eigen::Index>& coord_indices, 
+                 std::vector<Eigen::Triplet<double>>& extra_triplets, 
+                 int dof)
+{
+    for (int i = 0; i < dof; i++)
+    {
+        Eigen::Index index;
+        indices.maxCoeff(&index);
+        std::cout << "coordinate index = " << index << "\n";
+        coord_indices[i] = index;
+
+        auto triplet = Eigen::Triplet<double>(indices(index), index, 1);
+        std::cout << indices(index) << index << 1 << "\n";
+        extra_triplets.emplace_back();
+        indices(index) = 0;
+
+        //std::cout << "Modified Indices : \n" << indices << "\n";
+
+    }
+}
+
 // ============================================================================ 
 //                         Dynamics METHODS IMPLEMENTATION
 // ============================================================================
@@ -114,12 +140,16 @@ template<class T>
 void Solver<T>::partition_system_coordinates()
 {
     QRSolver.compute(Jacobian);
-    Eigen::MatrixXd b(QRSolver.colsPermutation());
+
+    auto& indices = QRSolver.colsPermutation().indices();
+    Eigen::MatrixXd P(QRSolver.colsPermutation());
+    
     std::cout << "System rank : " << QRSolver.rank() << "\n";
-    std::cout << "Permutation Matrix Shape : " << QRSolver.colsPermutation().rows() << ", " << QRSolver.colsPermutation().cols() << "\n";
-    std::cout << "Permutation Matrix : \n" << b << "\n";
-    std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
-    std::cout << "Permutation Matrix Indices Size : " << QRSolver.colsPermutation().indices().size() << "\n";
+    //std::cout << "Permutation Matrix Shape : " << P.rows() << ", " << P.cols() << "\n";
+    //std::cout << "Permutation Matrix : \n" << P << "\n";
+    //std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
+
+    get_indices(indices, coord_indices, extra_triplets, 1);
 
 }
  
@@ -137,6 +167,9 @@ Solver<T>::Solver()
         Jacobian(T::nc, T::n),
         MassMatrix(T::n, T::n)
 {
+    coord_indices.reserve(model.n - model.nc);
+    extra_triplets.reserve(model.n - model.nc);
+
     results_names[0] = "_pos";
     results_names[1] = "_vel";
     results_names[2] = "_acc";
