@@ -112,24 +112,22 @@ private:
 };
 
 void get_indices(Eigen::VectorXi indices, 
-                 std::vector<Eigen::Index>& coord_indices, 
                  std::vector<Eigen::Triplet<double>>& extra_triplets, 
                  int dof)
 {
+    Eigen::Index index;
+
     for (int i = 0; i < dof; i++)
     {
-        Eigen::Index index;
         indices.maxCoeff(&index);
+
         std::cout << "coordinate index = " << index << "\n";
-        coord_indices[i] = index;
+        std::cout << indices(index) << index << 1 << "\n";
 
         auto triplet = Eigen::Triplet<double>(indices(index), index, 1);
-        std::cout << indices(index) << index << 1 << "\n";
-        extra_triplets.emplace_back();
+        extra_triplets.emplace_back(triplet);
+
         indices(index) = 0;
-
-        //std::cout << "Modified Indices : \n" << indices << "\n";
-
     }
 }
 
@@ -141,15 +139,19 @@ void Solver<T>::partition_system_coordinates()
 {
     QRSolver.compute(Jacobian);
 
+    auto q = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
+
     auto& indices = QRSolver.colsPermutation().indices();
     Eigen::MatrixXd P(QRSolver.colsPermutation());
     
     std::cout << "System rank : " << QRSolver.rank() << "\n";
+    std::cout << "q : \n" << q << "\n";
+    std::cout << "P*q : \n" << QRSolver.colsPermutation() * q << "\n";
     //std::cout << "Permutation Matrix Shape : " << P.rows() << ", " << P.cols() << "\n";
     //std::cout << "Permutation Matrix : \n" << P << "\n";
     //std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
 
-    get_indices(indices, coord_indices, extra_triplets, 1);
+    get_indices(indices, extra_triplets, 1);
 
 }
  

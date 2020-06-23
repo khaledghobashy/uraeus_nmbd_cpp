@@ -33,5 +33,6 @@ public:
 
 public:
     void Assemble(SparseBlock& matrix, DataBlocks& data);
+    void Assemble(SparseBlock& matrix, DataBlocks& data, TripletList& extra_triplets);
 
 };
