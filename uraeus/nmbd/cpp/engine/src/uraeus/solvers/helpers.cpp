@@ -4,14 +4,15 @@
 
 MatrixAssembler::MatrixAssembler(
     Eigen::Ref<Eigen::VectorXi> rows,
-    Eigen::Ref<Eigen::VectorXi> cols)
+    Eigen::Ref<Eigen::VectorXi> cols,
+    int dof)
     :
         rows(rows), cols(cols)
     {
-        container.reserve(cols.size());
+        container.reserve(rows.size() + dof);
     };
 
-void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data)
+void MatrixAssembler::AssembleTripletList(DataBlocks& data)
 {
 
     container.clear();
@@ -62,69 +63,23 @@ void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data)
             }
         }
     }
-    matrix.setFromTriplets(container.begin(), container.end());
-    matrix.makeCompressed();
 };
 
-
-void MatrixAssembler::Assemble(SparseBlock& matrix, DataBlocks& data, TripletList& extra_triplets)
+void MatrixAssembler::Assemble(SparseBlock& matrix)
 {
+    matrix.setFromTriplets(container.begin(), container.end());
+    matrix.makeCompressed();
+};
 
-    container.clear();
 
-    int row_counter = 0;
-    int col_counter = 0;
-    Eigen::Index prev_rows_size = 0;
-    Eigen::Index prev_cols_size = 0;
-    Eigen::Index m = 0;
-    Eigen::Index n = 0;
-    const Eigen::Index nnz = rows.size();
-
-    //std::cout << "Starting Main for loop" << "\n";
-    for (Eigen::Index v = 0; v < nnz; v++)
-    {
-        const auto& vi = rows[v];
-        const auto& vj = cols[v];
-        const auto& mat_block = data[v]; 
-
-        if (vi != row_counter)
-        {
-            row_counter += 1;
-            prev_rows_size += m;
-            prev_cols_size  = 0;
-        }
-
-        m = mat_block.rows();
-        n = mat_block.cols();
-
-        prev_cols_size = 7 * (vj/2) ;
-        if (n == 4) {prev_cols_size += 3;};
-
-        if (mat_block.isZero(1e-4)) {continue;};
-        
-        for (Eigen::Index j = 0; j < n; j++)
-        {
-            for (Eigen::Index i = 0; i < m; i++)
-            {
-                const auto& value = mat_block(i, j);
-                if (std::abs(value) > 1e-4)
-                {
-                    container.emplace_back(
-                        Eigen::Triplet<double>(
-                            prev_rows_size + i, 
-                            prev_cols_size + j, 
-                            value));
-                }
-            }
-        }
-    }
-
-    std::move(extra_triplets.begin(), extra_triplets.end(), 
-              std::inserter(container, container.end()));
+void MatrixAssembler::Assemble(SparseBlock& matrix, TripletList& extra_triplets)
+{
+    container.insert(container.end(), extra_triplets.begin(), extra_triplets.end());
 
     matrix.setFromTriplets(container.begin(), container.end());
     matrix.makeCompressed();
 };
+
 
 
 double derivative(std::function<double(double)> func, double x, int order = 1)

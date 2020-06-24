@@ -24,7 +24,8 @@ class MatrixAssembler
 public:
     MatrixAssembler() = delete;
     MatrixAssembler(Eigen::Ref<Eigen::VectorXi> rows,
-                    Eigen::Ref<Eigen::VectorXi> cols);
+                    Eigen::Ref<Eigen::VectorXi> cols,
+                    int dof = 0);
 
     Eigen::Ref<Eigen::VectorXi> rows;
     Eigen::Ref<Eigen::VectorXi> cols;
@@ -32,7 +33,9 @@ public:
     TripletList container;
 
 public:
-    void Assemble(SparseBlock& matrix, DataBlocks& data);
-    void Assemble(SparseBlock& matrix, DataBlocks& data, TripletList& extra_triplets);
+
+    void AssembleTripletList(DataBlocks& data);
+    void Assemble(SparseBlock& matrix);
+    void Assemble(SparseBlock& matrix, TripletList& extra_triplets);
 
 };

@@ -50,15 +50,25 @@ public:
     Eigen::VectorXd lgr;
 
     SparseBlock Jacobian;
+    SparseBlock JacobianMod;
     SparseBlock MassMatrix;
 
     T model {"", q, qd, qdd, lgr};
 
-    MatrixAssembler JacobianAssembler {model.jac_rows, model.jac_cols};
+    MatrixAssembler JacobianAssembler {model.jac_rows, model.jac_cols, (model.n - model.nc)};
     MatrixAssembler MassAssembler {model.mas_cols, model.mas_cols};
+    
+    Eigen::SparseMatrix<double, Eigen::RowMajor> LeftMatrix  {model.n + model.nc, model.n};
+    Eigen::SparseMatrix<double, Eigen::RowMajor> RightMatrix {model.n + model.nc, model.nc};
+    Eigen::SparseMatrix<double, Eigen::ColMajor> CoeffMatrix {model.n + model.nc, model.n + model.nc};
+
+    Eigen::VectorXd NE_EOM_rhs{model.n + model.nc};
+    Eigen::PermutationMatrix<T::n, T::n, int> CoordinatesPermutation{model.n};
+
     
     double t;
     double step_size;
+    double dof;
     Eigen::VectorXd time_array;
 
     std::vector<Eigen::VectorXd> pos_history;
@@ -67,10 +77,9 @@ public:
     std::vector<Eigen::VectorXd> lgr_history;
     std::vector<Eigen::VectorXd> rct_history;
 
-    Eigen::SparseLU<SparseBlock> SparseSolver;
+    Eigen::SparseLU<SparseBlock> LUSolver;
     Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
-    std::vector<Eigen::Index> coord_indices;
     std::vector<Eigen::Triplet<double>> extra_triplets;
 
 
@@ -103,6 +112,9 @@ public:
     void ExportLagrangeMultipliers(std::string location, std::string name);
 
     void partition_system_coordinates();
+    void ConstructCoeffMatrix();
+    void SolveNE_EOM();
+    //void GetIndependentStates(Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> qi);
 
 
 private:
@@ -139,23 +151,91 @@ void Solver<T>::partition_system_coordinates()
 {
     QRSolver.compute(Jacobian);
 
-    auto q = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
+    auto q_dummy = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
 
-    auto& indices = QRSolver.colsPermutation().indices();
-    Eigen::MatrixXd P(QRSolver.colsPermutation());
+    CoordinatesPermutation = QRSolver.colsPermutation();
+    auto& indices = CoordinatesPermutation.indices();
     
     std::cout << "System rank : " << QRSolver.rank() << "\n";
-    std::cout << "q : \n" << q << "\n";
-    std::cout << "P*q : \n" << QRSolver.colsPermutation() * q << "\n";
+    std::cout << "q : \n" << q_dummy << "\n";
+    std::cout << "CoordinatesPermutation * q : \n" << CoordinatesPermutation * q_dummy << "\n";
     //std::cout << "Permutation Matrix Shape : " << P.rows() << ", " << P.cols() << "\n";
     //std::cout << "Permutation Matrix : \n" << P << "\n";
     //std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
-
+    
+    std::cout << "Calling get_indices\n";
     get_indices(indices, extra_triplets, 1);
 
-}
- 
+    std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
+    JacobianAssembler.AssembleTripletList(model.jac_eq);
 
+    std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
+    JacobianAssembler.Assemble(JacobianMod, extra_triplets);
+
+    std::cout << "JacMod : \n" << JacobianMod.innerVectors(1,3) << "\n";
+
+    Eigen::VectorXd b(model.n);
+    b << eval_pos_eq();
+    std::cout << "Poseq : \n" << b << "\n";
+
+    LUSolver.compute(JacobianMod);
+    LUSolver.solve(-b);
+
+    ConstructCoeffMatrix();
+    SolveNE_EOM();
+
+    std::cout << "Permuted Coordinates = \n" << (CoordinatesPermutation * q).segment(model.nc, dof) << "\n";
+};
+ 
+template<class T>
+void Solver<T>::ConstructCoeffMatrix()
+{
+    std::cout << "Calling eval_mas_eq \n";
+    eval_mas_eq();
+    std::cout << "Calling eval_jac_eq \n";
+    eval_jac_eq();
+
+    std::cout << "Calling LeftMatrix.innerVectors(0, model.n) = MassMatrix \n";
+    LeftMatrix.innerVectors(0, model.n) = MassMatrix;
+    std::cout << "Calling LeftMatrix.innerVectors(model.n, model.n + model.nc) = Jacobian \n";
+    LeftMatrix.innerVectors(model.n, model.nc) = Jacobian;
+
+    std::cout << "Calling RightMatrix.innerVectors(0, model.n) = Jacobian.transpose() \n";
+    RightMatrix.innerVectors(0, model.n) = Jacobian.transpose();
+
+    std::cout << "Calling CoeffMatrix.innerVectors(0, model.n) = LeftMatrix \n";
+    CoeffMatrix.innerVectors(0, model.n) = LeftMatrix;
+    std::cout << "Calling CoeffMatrix.innerVectors(model.n, model.n + model.nc) = RightMatrix \n";
+    CoeffMatrix.innerVectors(model.n, model.nc) = RightMatrix;
+
+    CoeffMatrix.makeCompressed();
+
+    std::cout << "CoeffMatrix : \n" << CoeffMatrix << "\n";
+
+}
+
+template<class T>
+void Solver<T>::SolveNE_EOM()
+{
+    NE_EOM_rhs << eval_frc_eq(), -eval_acc_eq();
+
+    LUSolver.compute(CoeffMatrix);
+    auto x = LUSolver.solve(NE_EOM_rhs);
+
+    qdd = x.segment(0, model.n);
+    lgr = x.segment(model.n, model.nc);
+
+    std::cout << "x = \n" << x << "\n";
+    std::cout << "qdd = \n" << qdd << "\n";
+    std::cout << "lgr = \n" << lgr << "\n";
+
+}
+
+/* template<class T>
+void Solver<T>::GetIndependentStates(Eigen::VectorXd q, Eigen::VectorXd& qi)
+{
+
+} */
 // ============================================================================ 
 //                         CLASS METHODS IMPLEMENTATION
 // ============================================================================
@@ -167,10 +247,11 @@ Solver<T>::Solver()
         qdd(T::n),
         lgr(T::nc),
         Jacobian(T::nc, T::n),
+        JacobianMod(T::n, T::n),
         MassMatrix(T::n, T::n)
 {
-    coord_indices.reserve(model.n - model.nc);
-    extra_triplets.reserve(model.n - model.nc);
+    dof = model.n - model.nc;
+    extra_triplets.reserve(dof);
 
     results_names[0] = "_pos";
     results_names[1] = "_vel";
@@ -206,6 +287,7 @@ template<class T>
 void Solver<T>::initialize()
 {
     model.initialize();
+    qd = Eigen::VectorXd::Zero(model.n);
 };
 
 
@@ -241,7 +323,8 @@ template<class T>
 void Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();
-    JacobianAssembler.Assemble(Jacobian, model.jac_eq);
+    JacobianAssembler.AssembleTripletList(model.jac_eq);
+    JacobianAssembler.Assemble(Jacobian);
 };
 
 template<class T>
@@ -249,7 +332,8 @@ void Solver<T>::eval_mas_eq()
 {   
     model.mas_eq.clear();
     model.eval_mas_eq();
-    MassAssembler.Assemble(MassMatrix, model.mas_eq);
+    MassAssembler.AssembleTripletList(model.mas_eq);
+    MassAssembler.Assemble(MassMatrix);
     //SparseAssembler(MassMatrix, mas_cols, mas_cols, model.mas_eq);
 };
 
@@ -266,8 +350,8 @@ void Solver<T>::solve_lgr_multipliers()
     Eigen::VectorXd ext_frc = eval_frc_eq();
     Eigen::VectorXd inertia = MassMatrix * qdd;
     Eigen::VectorXd rhs = ext_frc - inertia;
-    SparseSolver.compute(Jacobian.transpose());
-    lgr = SparseSolver.solve(rhs);
+    LUSolver.compute(Jacobian.transpose());
+    lgr = LUSolver.solve(rhs);
     //std::cout << (MassMatrix * qdd).transpose() << "\n\n";
     //std::cout << eval_frc_eq().transpose() << "\n\n";
 };
@@ -280,10 +364,10 @@ void Solver<T>::solve_constraints()
     //std::cout << "Evaluating Jac_Eq " << "\n";
     eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd error = SparseSolver.solve(-b);
+    Eigen::VectorXd error = LUSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -292,13 +376,13 @@ void Solver<T>::solve_constraints()
         //std::cout << "Error e = " << error.norm() << "\n";
         q += error;
         b = eval_pos_eq();
-        error = SparseSolver.solve(-b);
+        error = LUSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
         {
             eval_jac_eq();
-            SparseSolver.compute(Jacobian);
-            error = SparseSolver.solve(-b);
+            LUSolver.compute(Jacobian);
+            error = LUSolver.solve(-b);
         };
 
         if (itr>50)
@@ -311,7 +395,7 @@ void Solver<T>::solve_constraints()
     };
     
     eval_jac_eq();
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 };
 
 
@@ -319,7 +403,7 @@ template<class T>
 void Solver<T>::Solve()
 {
     std::cout << "Starting Solver ..." << "\n";
-    //Eigen::SparseLU<SparseBlock> SparseSolver;
+    //Eigen::SparseLU<SparseBlock> LUSolver;
     
     auto& dt = step_size;
     auto samples = time_array.size();
@@ -335,13 +419,13 @@ void Solver<T>::Solve()
     //std::cout << "Computing Jacobian" << "\n";
     eval_jac_eq();
     //std::cout << "Factorizing Jacobian" << "\n";
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 
     //std::cout << "Solving for Velocity" << "\n";
-    qd = SparseSolver.solve(-eval_vel_eq());
+    qd = LUSolver.solve(-eval_vel_eq());
     
     //std::cout << "Solving for Accelerations" << "\n";
-    qdd = SparseSolver.solve(-eval_acc_eq());
+    qdd = LUSolver.solve(-eval_acc_eq());
 
     solve_lgr_multipliers();
     eval_rct_eq();
@@ -367,8 +451,8 @@ void Solver<T>::Solve()
 
         solve_constraints();
 
-        qd  = SparseSolver.solve(-eval_vel_eq());
-        qdd = SparseSolver.solve(-eval_acc_eq());
+        qd  = LUSolver.solve(-eval_vel_eq());
+        qdd = LUSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
         eval_rct_eq();
