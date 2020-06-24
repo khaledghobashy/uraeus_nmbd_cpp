@@ -64,7 +64,9 @@ public:
 
     Eigen::VectorXd NE_EOM_rhs{model.n + model.nc};
     Eigen::PermutationMatrix<T::n, T::n, int> CoordinatesPermutation{model.n};
-
+    
+    Eigen::VectorXd StateVectorD0;
+    Eigen::VectorXd StateVectorD1;
     
     double t;
     double step_size;
@@ -80,6 +82,7 @@ public:
     Eigen::SparseLU<SparseBlock> LUSolver;
     Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
+    std::vector<Eigen::Index> coord_indices;
     std::vector<Eigen::Triplet<double>> extra_triplets;
 
 
@@ -114,6 +117,10 @@ public:
     void partition_system_coordinates();
     void ConstructCoeffMatrix();
     void SolveNE_EOM();
+
+    Eigen::VectorXd SSODE(double t, double h);
+    void AdvanceTimeStep(double t, double h)
+     
     //void GetIndependentStates(Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> qi);
 
 
@@ -122,6 +129,7 @@ private:
     std::map<int, std::string> results_names;
 
 };
+
 
 void get_indices(Eigen::VectorXi indices, 
                  std::vector<Eigen::Triplet<double>>& extra_triplets, 
@@ -138,6 +146,7 @@ void get_indices(Eigen::VectorXi indices,
 
         auto triplet = Eigen::Triplet<double>(indices(index), index, 1);
         extra_triplets.emplace_back(triplet);
+        coord_indices[i] = index;
 
         indices(index) = 0;
     }
@@ -146,6 +155,50 @@ void get_indices(Eigen::VectorXi indices,
 // ============================================================================ 
 //                         Dynamics METHODS IMPLEMENTATION
 // ============================================================================
+
+template<class T>
+void Solver<T>::AdvanceTimeStep(double t, double h)
+{
+
+}
+
+template<class T>
+Eigen::VectorXd Solver<T>::SSODE(double t, double h)
+{
+    set_time(t);
+
+    auto& y1 = (CoordinatesPermutation * q).segment(model.nc, dof)
+    auto& y2 = (CoordinatesPermutation * qd).segment(model.nc, dof)
+
+    q += (qd * h) + (0.5 * qdd * (h*h));
+
+    int i = 0;
+    for (const auto& index : coord_indices)
+    {
+        q(index) = y1(i);
+        i++;
+    };
+
+    solve_constraints();
+
+    Eigen::VectorXd vel_rhs(model.n);
+    auto vel_rhs_nc = eval_vel_eq();
+    vel_rhs << -vel_rhs_nc, y2;
+
+    qd = LUSolver.solve(vel_rhs);
+
+    ConstructCoeffMatrix();
+    SolveNE_EOM();
+
+    auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
+
+    StateVectorD1 << y2, y3;
+
+    return StateVectorD1;
+
+};
+
+
 template<class T>
 void Solver<T>::partition_system_coordinates()
 {
@@ -185,6 +238,8 @@ void Solver<T>::partition_system_coordinates()
     SolveNE_EOM();
 
     std::cout << "Permuted Coordinates = \n" << (CoordinatesPermutation * q).segment(model.nc, dof) << "\n";
+    std::cout << "Permuted Velocities = \n" << (CoordinatesPermutation * qd).segment(model.nc, dof) << "\n";
+    std::cout << "Permuted Accelerations = \n" << (CoordinatesPermutation * qdd).segment(model.nc, dof) << "\n";
 };
  
 template<class T>
@@ -231,11 +286,7 @@ void Solver<T>::SolveNE_EOM()
 
 }
 
-/* template<class T>
-void Solver<T>::GetIndependentStates(Eigen::VectorXd q, Eigen::VectorXd& qi)
-{
 
-} */
 // ============================================================================ 
 //                         CLASS METHODS IMPLEMENTATION
 // ============================================================================
@@ -252,6 +303,9 @@ Solver<T>::Solver()
 {
     dof = model.n - model.nc;
     extra_triplets.reserve(dof);
+
+    StateVectorD0(2 * dof);
+    StateVectorD1(2 * dof);
 
     results_names[0] = "_pos";
     results_names[1] = "_vel";
