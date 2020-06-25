@@ -6,6 +6,7 @@ add_library(uraeuslib
     uraeus/numerics/spatial_algebra.cpp
     uraeus/numerics/geometries.cpp
     uraeus/solvers/helpers.cpp
+    uraeus/solvers/integrators.cpp
     uraeus/solvers/utilities.cpp
     uraeus/systems/configuration.cpp
 )
@@ -29,6 +30,7 @@ install(
         uraeus/solvers/utilities.hpp
         uraeus/solvers/solvers.hpp
         uraeus/systems/configuration.hpp
+        uraeus/solvers/integrators.hpp
     
         DESTINATION lib/cmake/uraeus/include
   )
