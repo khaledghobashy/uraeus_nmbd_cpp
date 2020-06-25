@@ -154,7 +154,7 @@ void get_indices(Eigen::VectorXi indices,
 
         auto triplet = Eigen::Triplet<double>(indices(index), index, 1);
         extra_triplets.emplace_back(triplet);
-        coord_indices[i] = index;
+        coord_indices.emplace_back(index);
 
         indices(index) = 0;
     }
@@ -167,8 +167,9 @@ void get_indices(Eigen::VectorXi indices,
 template<class T>
 void Solver<T>::AdvanceTimeStep()
 {
-
+    std::cout << "Calling integrator.Advance(this, StateVectorD0, StateVectorD1) \n";
     integrator.Advance(this, StateVectorD0, StateVectorD1);
+    std::cout << "StateVectorD0 = integrator.y \n";
     StateVectorD0 = integrator.y;
 
 }
@@ -213,6 +214,7 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd StateVectorD0, double t, double
 template<class T>
 void Solver<T>::PartitionSystemCoordinates()
 {
+    eval_jac_eq();
     QRSolver.compute(Jacobian);
 
     //auto q_dummy = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
@@ -230,10 +232,10 @@ void Solver<T>::PartitionSystemCoordinates()
     //std::cout << "Calling get_indices\n";
     get_indices(indices, coord_indices, extra_triplets, 1);
 
-    //std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
+    std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
     JacobianAssembler.AssembleTripletList(model.jac_eq);
 
-    //std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
+    std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
     JacobianAssembler.Assemble(JacobianMod, extra_triplets);
 
     //std::cout << "JacMod : \n" << JacobianMod.innerVectors(1,3) << "\n";
@@ -267,39 +269,48 @@ void Solver<T>::ConstructStateVectors()
 template<class T>
 void Solver<T>::ConstructCoeffMatrix()
 {
-    //std::cout << "Calling eval_mas_eq \n";
+    std::cout << "Calling eval_mas_eq \n";
     eval_mas_eq();
-    //std::cout << "Calling eval_jac_eq \n";
+    std::cout << "Calling eval_jac_eq \n";
     eval_jac_eq();
 
-    //std::cout << "Calling LeftMatrix.innerVectors(0, model.n) = MassMatrix \n";
+    std::cout << "Calling LeftMatrix.innerVectors(0, model.n) = MassMatrix \n";
     LeftMatrix.innerVectors(0, model.n) = MassMatrix;
-    //std::cout << "Calling LeftMatrix.innerVectors(model.n, model.n + model.nc) = Jacobian \n";
+    std::cout << "Calling LeftMatrix.innerVectors(model.n, model.n + model.nc) = Jacobian \n";
     LeftMatrix.innerVectors(model.n, model.nc) = Jacobian;
 
-    //std::cout << "Calling RightMatrix.innerVectors(0, model.n) = Jacobian.transpose() \n";
+    std::cout << "Calling RightMatrix.innerVectors(0, model.n) = Jacobian.transpose() \n";
     RightMatrix.innerVectors(0, model.n) = Jacobian.transpose();
 
-    //std::cout << "Calling CoeffMatrix.innerVectors(0, model.n) = LeftMatrix \n";
+    std::cout << "Calling CoeffMatrix.innerVectors(0, model.n) = LeftMatrix \n";
     CoeffMatrix.innerVectors(0, model.n) = LeftMatrix;
-    //std::cout << "Calling CoeffMatrix.innerVectors(model.n, model.n + model.nc) = RightMatrix \n";
+    std::cout << "Calling CoeffMatrix.innerVectors(model.n, model.n + model.nc) = RightMatrix \n";
     CoeffMatrix.innerVectors(model.n, model.nc) = RightMatrix;
 
     CoeffMatrix.makeCompressed();
 
-    //std::cout << "CoeffMatrix : \n" << CoeffMatrix << "\n";
+    std::cout << "CoeffMatrix : DONE !!\n";
 
 }
 
 template<class T>
 void Solver<T>::SolveNE_EOM()
 {
+    std::cout << "Filling NE_EOM_rhs vector !!\n";
     NE_EOM_rhs << eval_frc_eq(), -eval_acc_eq();
+    std::cout << "NE_EOM_rhs = \n" << NE_EOM_rhs << "\n";
 
+
+    std::cout << "Calling LUSolver.compute(CoeffMatrix) !!\n";
     LUSolver.compute(CoeffMatrix);
+    std::cout << "Calling LUSolver.solve(NE_EOM_rhs) !!\n";
     auto x = LUSolver.solve(NE_EOM_rhs);
 
+    std::cout << "x = \n" << x << "\n";
+
+    std::cout << "Calling qdd = x.segment(0, model.n) !!\n";
     qdd = x.segment(0, model.n);
+    std::cout << "Calling lgr = x.segment(model.n, model.nc) !!\n";
     lgr = x.segment(model.n, model.nc);
 
     std::cout << "x = \n" << x << "\n";
@@ -483,7 +494,7 @@ void Solver<T>::Solve()
     rct_history.reserve(samples);
 
     PartitionSystemCoordinates();
-    solve_constraints();
+    //solve_constraints();
     ConstructCoeffMatrix();
     SolveNE_EOM();
     ConstructStateVectors();
