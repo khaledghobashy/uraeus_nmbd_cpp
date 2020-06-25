@@ -86,7 +86,7 @@ public:
     std::vector<Eigen::Index> coord_indices;
     std::vector<Eigen::Triplet<double>> extra_triplets;
 
-    Explicit_RK4 integrator;
+    Explicit_RK4<Solver<T>> integrator;
 
 
 
@@ -117,13 +117,13 @@ public:
     void ExportReactionsResults(std::string location, std::string name);
     void ExportLagrangeMultipliers(std::string location, std::string name);
 
-    void partition_system_coordinates();
+    void PartitionSystemCoordinates();
     void ConstructCoeffMatrix();
     void SolveNE_EOM();
     void ConstructStateVectors();
 
-    Eigen::VectorXd SSODE(Eigen::VectorXd& StateVectorD0, double t, double h);
-    void AdvanceTimeStep()
+    Eigen::VectorXd SSODE(Eigen::VectorXd StateVectorD0, double t, double h);
+    void AdvanceTimeStep();
      
     //void GetIndependentStates(Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> qi);
 
@@ -138,7 +138,8 @@ private:
 //                              Helper Functions
 // ============================================================================
 
-void get_indices(Eigen::VectorXi indices, 
+void get_indices(Eigen::VectorXi indices,
+                 std::vector<Eigen::Index>& coord_indices,
                  std::vector<Eigen::Triplet<double>>& extra_triplets, 
                  int dof)
 {
@@ -167,18 +168,18 @@ template<class T>
 void Solver<T>::AdvanceTimeStep()
 {
 
-    integrator.Advance(StateVectorD0, StateVectorD1);
+    integrator.Advance(this, StateVectorD0, StateVectorD1);
     StateVectorD0 = integrator.y;
 
 }
 
 template<class T>
-Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd& StateVectorD0, double t, double h)
+Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd StateVectorD0, double t, double h)
 {
     set_time(t);
 
-    auto& y1 = StateVectorD0.head(dof)
-    auto& y2 = StateVectorD0.tail(dof)
+    auto& y1 = StateVectorD0.head(dof);
+    auto& y2 = StateVectorD0.tail(dof);
 
     q += (qd * h) + (0.5 * qdd * (h*h));
 
@@ -227,7 +228,7 @@ void Solver<T>::PartitionSystemCoordinates()
     //std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
     
     //std::cout << "Calling get_indices\n";
-    get_indices(indices, extra_triplets, 1);
+    get_indices(indices, coord_indices, extra_triplets, 1);
 
     //std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
     JacobianAssembler.AssembleTripletList(model.jac_eq);
@@ -255,13 +256,12 @@ void Solver<T>::PartitionSystemCoordinates()
 template<class T>
 void Solver<T>::ConstructStateVectors()
 {
-    auto& y1 = (CoordinatesPermutation * q).segment(model.nc, dof)
-    auto& y2 = (CoordinatesPermutation * qd).segment(model.nc, dof)
+    auto& y1 = (CoordinatesPermutation * q).segment(model.nc, dof);
+    auto& y2 = (CoordinatesPermutation * qd).segment(model.nc, dof);
     auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
     StateVectorD0 << y1, y2;
     StateVectorD1 << y2, y3;
-
 }
 
 template<class T>
@@ -326,10 +326,10 @@ Solver<T>::Solver()
     dof = model.n - model.nc;
     extra_triplets.reserve(dof);
 
-    StateVectorD0(2 * dof);
-    StateVectorD1(2 * dof);
+    StateVectorD0.resize(2 * dof);
+    StateVectorD1.resize(2 * dof);
 
-    integrator.SSODE = SSODE;
+    integrator.Initialize(dof);
 
     results_names[0] = "_pos";
     results_names[1] = "_vel";
@@ -427,7 +427,8 @@ template<class T>
 void Solver<T>::solve_constraints()
 {    
     //std::cout << "Evaluating Pos_Eq " << "\n";
-    auto&& b = eval_pos_eq();
+    Eigen::VectorXd b(model.n);
+    b << eval_pos_eq(), Eigen::VectorXd::Zero(dof);
     //std::cout << "Evaluating Jac_Eq " << "\n";
     eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
@@ -442,7 +443,7 @@ void Solver<T>::solve_constraints()
     {
         //std::cout << "Error e = " << error.norm() << "\n";
         q += error;
-        b = eval_pos_eq();
+        b << eval_pos_eq(), Eigen::VectorXd::Zero(dof);
         error = LUSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
@@ -486,6 +487,9 @@ void Solver<T>::Solve()
     ConstructCoeffMatrix();
     SolveNE_EOM();
     ConstructStateVectors();
+
+    integrator.h = dt;
+    integrator.t = 0;
     
 
     pos_history.emplace_back(q);

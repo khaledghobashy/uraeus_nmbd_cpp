@@ -6,7 +6,7 @@ add_library(uraeuslib
     uraeus/numerics/spatial_algebra.cpp
     uraeus/numerics/geometries.cpp
     uraeus/solvers/helpers.cpp
-    uraeus/solvers/integrators.cpp
+    #uraeus/solvers/integrators.cpp
     uraeus/solvers/utilities.cpp
     uraeus/systems/configuration.cpp
 )

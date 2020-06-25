@@ -1,14 +1,25 @@
 
 #include "integrators.hpp"
 
-Explicit_RK4::Explicit_RK4(Eigen::Index dof)
+template<class S>
+Explicit_RK4<S>::Explicit_RK4()
+{};
+
+template<class S>
+void Explicit_RK4<S>::Initialize(Eigen::Index dof)
 {
     n_stages = 4;
-    K(5, dof);
+    K.resize(5, dof);
 };
 
+/* template<class T>
+Eigen::VectorXd Explicit_RK4<T>::SSODE(T* solver, Eigen::VectorXd, double, double)
+{
+    return solver->SSODE(Eigen::VectorXd, double, double);
+}; */
 
-void Explicit_RK4::Advance(Eigen::VectorXd& StateVectorD0, Eigen::VectorXd& StateVectorD1)
+template<class S>
+void Explicit_RK4<S>::Advance(Eigen::VectorXd& StateVectorD0, Eigen::VectorXd& StateVectorD1)
 {
 
     K.row(0) = StateVectorD1;
