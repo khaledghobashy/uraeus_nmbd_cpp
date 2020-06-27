@@ -117,6 +117,7 @@ public:
     void ExportReactionsResults(std::string location, std::string name);
     void ExportLagrangeMultipliers(std::string location, std::string name);
 
+    void PartitionSystemCoordinates(int);
     void PartitionSystemCoordinates();
     void ConstructCoeffMatrix();
     void SolveNE_EOM();
@@ -145,12 +146,16 @@ void get_indices(Eigen::VectorXi indices,
 {
     Eigen::Index index;
 
+    coord_indices.clear();
+    extra_triplets.clear();
+
+    //std::cout << "dof = " << dof << "\n";
+
     for (int i = 0; i < dof; i++)
     {
         indices.maxCoeff(&index);
 
-        std::cout << "coordinate index = " << index << "\n";
-        std::cout << indices(index) << index << 1 << "\n";
+       //std::cout << "coordinate index = " << index << "\n";
 
         auto triplet = Eigen::Triplet<double>(indices(index), index, 1);
         extra_triplets.emplace_back(triplet);
@@ -167,9 +172,10 @@ void get_indices(Eigen::VectorXi indices,
 template<class T>
 void Solver<T>::AdvanceTimeStep()
 {
-    std::cout << "Calling integrator.Advance(this, StateVectorD0, StateVectorD1) \n";
+    ConstructStateVectors();
+    //std::cout << "Calling integrator.Advance(this, StateVectorD0, StateVectorD1) \n";
     integrator.Advance(this, StateVectorD0, StateVectorD1);
-    std::cout << "StateVectorD0 = integrator.y \n";
+    //std::cout << "StateVectorD0 = integrator.y \n";
     StateVectorD0 = integrator.y;
 
 }
@@ -177,44 +183,91 @@ void Solver<T>::AdvanceTimeStep()
 template<class T>
 Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd StateVectorD0, double t, double h)
 {
+    q   = pos_history.back();
+    qd  = vel_history.back();
+    qdd = acc_history.back();
+
+   //std::cout << "SSODE::StateVectorD0 = " << StateVectorD0.transpose() << "\n";
+   //std::cout << "set_time(t) \n";
     set_time(t);
 
-    auto& y1 = StateVectorD0.head(dof);
-    auto& y2 = StateVectorD0.tail(dof);
+    const auto& y1 = StateVectorD0.head(dof);
+    const auto& y2 = StateVectorD0.tail(dof);
 
     q += (qd * h) + (0.5 * qdd * (h*h));
 
-    int i = 0;
+    int i = dof-1;
     for (const auto& index : coord_indices)
     {
+       //std::cout << "q(index) = y1(i) \n";
         q(index) = y1(i);
-        i++;
+        i--;
     };
 
+   //std::cout << "solve_constraints() \n";
     solve_constraints();
 
+   //std::cout << "vel_rhs << -vel_rhs_nc, y2; \n";
     Eigen::VectorXd vel_rhs(model.n);
     auto vel_rhs_nc = eval_vel_eq();
     vel_rhs << -vel_rhs_nc, y2;
 
+   //std::cout << "qd = LUSolver.solve(vel_rhs) \n";
     qd = LUSolver.solve(vel_rhs);
 
+   //std::cout << "ConstructCoeffMatrix() \n";
     ConstructCoeffMatrix();
+   //std::cout << "SolveNE_EOM() \n";
     SolveNE_EOM();
 
-    auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
+    const auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
     StateVectorD1 << y2, y3;
+
+   //std::cout << "\nStateVectorD0 = " << StateVectorD0.transpose() << "\n";
+   //std::cout << "StateVectorD1 = " << StateVectorD1.transpose() << "\n\n";
 
     return StateVectorD1;
 
 };
 
-
 template<class T>
 void Solver<T>::PartitionSystemCoordinates()
 {
-    eval_jac_eq();
+    //eval_jac_eq();
+    Eigen::MatrixXd DenseJacobian = Eigen::MatrixXd(Jacobian);
+
+    auto QRSolver = DenseJacobian.transpose().fullPivLu();
+
+    //auto q_dummy = Eigen::VectorXd::LinSpaced(model.n, 0, model.n-1);
+
+    //CoordinatesPermutation = QRSolver.colsPermutation();
+    CoordinatesPermutation = QRSolver.permutationP();
+    auto& indices = CoordinatesPermutation.indices();
+    
+    //std::cout << "System rank : " << QRSolver.rank() << "\n";
+    //std::cout << "q : \n" << q_dummy << "\n";
+    //std::cout << "CoordinatesPermutation * q : \n" << CoordinatesPermutation * q_dummy << "\n";
+    //std::cout << "Permutation Matrix Shape : " << CoordinatesPermutation.rows() << ", " << CoordinatesPermutation.cols() << "\n";
+    //std::cout << "Permutation Matrix : \n" << Eigen::MatrixXd(CoordinatesPermutation) << "\n";
+    //std::cout << "Permutation Matrix Indices : \n" << indices << "\n";
+    
+   //std::cout << "Calling get_indices\n";
+    get_indices(indices, coord_indices, extra_triplets, dof);
+
+   //std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
+    JacobianAssembler.AssembleTripletList(model.jac_eq);
+
+   //std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
+    JacobianAssembler.Assemble(JacobianMod, extra_triplets);
+
+};
+
+
+template<class T>
+void Solver<T>::PartitionSystemCoordinates(int d)
+{
+    //eval_jac_eq();
     QRSolver.compute(Jacobian);
 
     //auto q_dummy = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
@@ -227,15 +280,15 @@ void Solver<T>::PartitionSystemCoordinates()
     //std::cout << "CoordinatesPermutation * q : \n" << CoordinatesPermutation * q_dummy << "\n";
     //std::cout << "Permutation Matrix Shape : " << P.rows() << ", " << P.cols() << "\n";
     //std::cout << "Permutation Matrix : \n" << P << "\n";
-    //std::cout << "Permutation Matrix Indices : \n" << QRSolver.colsPermutation().indices() << "\n";
+    //std::cout << "Permutation Matrix Indices : \n" << indices << "\n";
     
     //std::cout << "Calling get_indices\n";
-    get_indices(indices, coord_indices, extra_triplets, 1);
+    get_indices(indices, coord_indices, extra_triplets, dof);
 
-    std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
+    //std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
     JacobianAssembler.AssembleTripletList(model.jac_eq);
 
-    std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
+    //std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
     JacobianAssembler.Assemble(JacobianMod, extra_triplets);
 
     //std::cout << "JacMod : \n" << JacobianMod.innerVectors(1,3) << "\n";
@@ -258,64 +311,75 @@ void Solver<T>::PartitionSystemCoordinates()
 template<class T>
 void Solver<T>::ConstructStateVectors()
 {
-    auto& y1 = (CoordinatesPermutation * q).segment(model.nc, dof);
-    auto& y2 = (CoordinatesPermutation * qd).segment(model.nc, dof);
-    auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
+    const auto& y1 = (CoordinatesPermutation * q).segment(model.nc, dof);
+    const auto& y2 = (CoordinatesPermutation * qd).segment(model.nc, dof);
+    const auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
     StateVectorD0 << y1, y2;
     StateVectorD1 << y2, y3;
+
+   //std::cout << "(CoordinatesPermutation * q) = \n" << (CoordinatesPermutation * q) << "\n";
+   //std::cout << "(CoordinatesPermutation * qd) = \n" << (CoordinatesPermutation * qd) << "\n";
+   //std::cout << "(CoordinatesPermutation * qdd) = \n" << (CoordinatesPermutation * qdd) << "\n";
+
+   //std::cout << "StateVectorD0 = " << StateVectorD0.transpose() << "\n";
+   //std::cout << "StateVectorD1 = " << StateVectorD1.transpose() << "\n";
+
+
+
 }
 
 template<class T>
 void Solver<T>::ConstructCoeffMatrix()
 {
-    std::cout << "Calling eval_mas_eq \n";
+   //std::cout << "Calling eval_mas_eq \n";
     eval_mas_eq();
-    std::cout << "Calling eval_jac_eq \n";
+   //std::cout << "Calling eval_jac_eq \n";
     eval_jac_eq();
 
-    std::cout << "Calling LeftMatrix.innerVectors(0, model.n) = MassMatrix \n";
+   //std::cout << "Calling LeftMatrix.innerVectors(0, model.n) = MassMatrix \n";
     LeftMatrix.innerVectors(0, model.n) = MassMatrix;
-    std::cout << "Calling LeftMatrix.innerVectors(model.n, model.n + model.nc) = Jacobian \n";
+   //std::cout << "Calling LeftMatrix.innerVectors(model.n, model.n + model.nc) = Jacobian \n";
     LeftMatrix.innerVectors(model.n, model.nc) = Jacobian;
 
-    std::cout << "Calling RightMatrix.innerVectors(0, model.n) = Jacobian.transpose() \n";
+   //std::cout << "Calling RightMatrix.innerVectors(0, model.n) = Jacobian.transpose() \n";
     RightMatrix.innerVectors(0, model.n) = Jacobian.transpose();
 
-    std::cout << "Calling CoeffMatrix.innerVectors(0, model.n) = LeftMatrix \n";
+   //std::cout << "Calling CoeffMatrix.innerVectors(0, model.n) = LeftMatrix \n";
     CoeffMatrix.innerVectors(0, model.n) = LeftMatrix;
-    std::cout << "Calling CoeffMatrix.innerVectors(model.n, model.n + model.nc) = RightMatrix \n";
+   //std::cout << "Calling CoeffMatrix.innerVectors(model.n, model.n + model.nc) = RightMatrix \n";
     CoeffMatrix.innerVectors(model.n, model.nc) = RightMatrix;
 
     CoeffMatrix.makeCompressed();
 
-    std::cout << "CoeffMatrix : DONE !!\n";
+    //std::cout << "CoeffMatrix = \n" << CoeffMatrix << "\n";
+    //std::cout << "CoeffMatrix : DONE !!\n";
 
 }
 
 template<class T>
 void Solver<T>::SolveNE_EOM()
 {
-    std::cout << "Filling NE_EOM_rhs vector !!\n";
+   //std::cout << "Filling NE_EOM_rhs vector !!\n";
     NE_EOM_rhs << eval_frc_eq(), -eval_acc_eq();
-    std::cout << "NE_EOM_rhs = \n" << NE_EOM_rhs << "\n";
+    //std::cout << "NE_EOM_rhs = \n" << NE_EOM_rhs << "\n";
 
 
-    std::cout << "Calling LUSolver.compute(CoeffMatrix) !!\n";
+   //std::cout << "Calling LUSolver.compute(CoeffMatrix) !!\n";
     LUSolver.compute(CoeffMatrix);
-    std::cout << "Calling LUSolver.solve(NE_EOM_rhs) !!\n";
+   //std::cout << "LUSolver.info = \n" << LUSolver.info() << "\n";
+   //std::cout << "Calling LUSolver.solve(NE_EOM_rhs) !!\n";
     auto x = LUSolver.solve(NE_EOM_rhs);
 
-    std::cout << "x = \n" << x << "\n";
+    //std::cout << "x = \n" << x << "\n";
+    //std::cout << "x.shape = \n" << x.size() << "\n";
 
-    std::cout << "Calling qdd = x.segment(0, model.n) !!\n";
+   //std::cout << "Calling qdd = x.segment(0, model.n) !!\n";
     qdd = x.segment(0, model.n);
-    std::cout << "Calling lgr = x.segment(model.n, model.nc) !!\n";
+   //std::cout << "Calling lgr = x.segment(model.n, model.nc) !!\n";
     lgr = x.segment(model.n, model.nc);
 
-    std::cout << "x = \n" << x << "\n";
-    std::cout << "qdd = \n" << qdd << "\n";
-    std::cout << "lgr = \n" << lgr << "\n";
+    //std::cout << "x = \n" << x << "\n";
 
 }
 
@@ -437,22 +501,26 @@ void Solver<T>::eval_rct_eq()
 template<class T>
 void Solver<T>::solve_constraints()
 {    
-    //std::cout << "Evaluating Pos_Eq " << "\n";
+   //std::cout << "Evaluating Pos_Eq " << "\n";
     Eigen::VectorXd b(model.n);
     b << eval_pos_eq(), Eigen::VectorXd::Zero(dof);
-    //std::cout << "Evaluating Jac_Eq " << "\n";
+   //std::cout << "Evaluating Jac_Eq " << "\n";
     eval_jac_eq();
-    //std::cout << "Computing Matrix A " << "\n";
+   //std::cout << "Computing Matrix A " << "\n";
+    //std::cout << "JacobianMod = \n" << JacobianMod << "\n";
     LUSolver.compute(JacobianMod);
+    //std::cout << LUSolver.logAbsDeterminant() << "\n";
 
-    //std::cout << "Solving for Vector b " << "\n";
+   //std::cout << "Solving for Vector b " << "\n";
+   //std::cout << "b = \n" << b << "\n";
     Eigen::VectorXd error = LUSolver.solve(-b);
 
-    //std::cout << "Entring While Loop " << "\n";
+   //std::cout << "error.norm() = " << error.norm() << "\n";
+   //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
     while (error.norm() >= 1e-5)
     {
-        //std::cout << "Error e = " << error.norm() << "\n";
+       //std::cout << "Error e = " << error.norm() << "\n";
         q += error;
         b << eval_pos_eq(), Eigen::VectorXd::Zero(dof);
         error = LUSolver.solve(-b);
@@ -482,7 +550,6 @@ template<class T>
 void Solver<T>::Solve()
 {
     std::cout << "Starting Dynamic Solver ..." << "\n";
-    //Eigen::SparseLU<SparseBlock> LUSolver;
     
     auto& dt = step_size;
     auto samples = time_array.size();
@@ -493,11 +560,12 @@ void Solver<T>::Solve()
     lgr_history.reserve(samples);
     rct_history.reserve(samples);
 
+    eval_jac_eq();
     PartitionSystemCoordinates();
-    //solve_constraints();
+    solve_constraints();
     ConstructCoeffMatrix();
     SolveNE_EOM();
-    ConstructStateVectors();
+    //ConstructStateVectors();
 
     integrator.h = dt;
     integrator.t = 0;
@@ -512,7 +580,7 @@ void Solver<T>::Solve()
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
 
-    std::cout << "\nRunning System Kinematic Analysis: " << "\n";
+    std::cout << "\nRunning System Dynamic Analysis: " << "\n";
     for (size_t i = 1; i < samples; i++)
     {
         print_progress(begin, samples, i);
@@ -520,9 +588,16 @@ void Solver<T>::Solve()
         t = time_array(i) ;
         set_time(t) ;
 
-        PartitionSystemCoordinates();
-        AdvanceTimeStep();
-
+        if (true) 
+        {
+            PartitionSystemCoordinates();
+            AdvanceTimeStep();
+            //ConstructStateVectors();
+        }
+        else
+        {
+            AdvanceTimeStep();
+        }
         
         pos_history.emplace_back(q);
         vel_history.emplace_back(qd);
