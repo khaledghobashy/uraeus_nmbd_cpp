@@ -179,6 +179,7 @@ void Topology::initialize()
     map_indicies();
     assemble(indicies_map, interface_map, 0);
     coord.q << config.q;
+    coord.qd << config.qd;
 };
 
 void Topology::map_indicies()

@@ -294,7 +294,7 @@ class template_codegen(abstract_generator):
 
         template = os.path.join(
             os.path.dirname(__file__), 
-            "templates/header_template.txt")
+            "templates/topology_header.txt")
 
         with open(template, "r") as f:
             template_text = Template(f.read())
@@ -476,7 +476,9 @@ class template_codegen(abstract_generator):
         printer = self.printer
         indent = ''
 
-        source_template = os.path.join(os.path.dirname(__file__), "templates/source_template.txt")
+        source_template = os.path.join(
+            os.path.dirname(__file__), 
+            "templates/topology_source.txt")
 
         with open(source_template, "r") as f:
             template_text = Template(f.read())
