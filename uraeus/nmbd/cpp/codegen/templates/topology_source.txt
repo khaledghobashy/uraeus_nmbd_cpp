@@ -1,0 +1,262 @@
+
+#include "$topology_name.hpp"
+
+typedef Eigen::SparseMatrix<double, Eigen::ColMajor> SparseBlock;
+
+using namespace $topology_name ;
+// ============================================================================
+//                     Configuration Class Implementation
+// ============================================================================
+
+Configuration::Configuration()
+    :
+        ConfigInputs()
+    {}
+
+void Configuration::constructFromJSON(const std::string& fileName)
+{
+    ConfigInputs.constructFromJSON(fileName);
+    populateArguments();
+};
+
+
+void Configuration::populateArguments()
+{
+    $primary_arguments
+};
+
+
+void Configuration::set_inital_configuration()
+{
+    R_ground << 0, 0, 0 ;
+    P_ground << 1, 0, 0, 0 ;
+
+    q.resize($n);
+    q << 
+        $q_equalities;
+
+    qd.resize($n);
+    qd << 
+        $qd_equalities;
+};
+
+// ============================================================================
+//                     Constants Structure
+// ============================================================================
+void Constants::assemble(Configuration& config)
+{
+    $num_constants
+                    
+    $sym_constants
+};
+
+// ============================================================================
+//                     Coordinates Structuer
+// ============================================================================
+Coordinates::Coordinates(Eigen::Ref<Eigen::VectorXd> _q, 
+                         Eigen::Ref<Eigen::VectorXd> _qd, 
+                         Eigen::Ref<Eigen::VectorXd> _qdd,
+                         Eigen::Ref<Eigen::VectorXd> _lgr)
+    : // Initializer list initializing the needed struct memebrs.
+        q(_q), qd(_qd), qdd(_qdd), lgr(_lgr)
+    {};
+
+// ============================================================================
+//                     Actuators Struct Constructor
+// ============================================================================
+Actuators::Actuators(){};
+
+// ============================================================================
+//            Position Constraints Equations Implementation
+// ============================================================================
+void Pos_Eq::eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t)
+{
+    $pos_replacements
+
+    eq <<
+        $pos_expressions;
+};
+
+// ============================================================================
+//            Velocity Constraints Equations Implementation
+// ============================================================================
+void Vel_Eq::eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t)
+{
+    $vel_replacements
+
+    eq <<
+        $vel_expressions;
+};
+
+// ============================================================================
+//            Acceleration Constraints Equations Implementation
+// ============================================================================
+void Acc_Eq::eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t)
+{
+    $acc_replacements
+
+    eq <<
+        $acc_expressions;
+};
+
+// ============================================================================
+//                      Force Equations Implementation
+// ============================================================================
+void Frc_Eq::eval(Eigen::Ref<Eigen::VectorXd> eq, Coordinates& coord, Constants& consts, Actuators& acts, double t, Configuration& config)
+{
+    $frc_replacements
+
+    eq <<
+        $frc_expressions;
+};
+
+// ============================================================================
+//            Constraints Jacobian Equations Implementation
+// ============================================================================
+void JacMatEqn::assemble(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols)
+{
+    $jac_submatrices
+};
+
+void JacMatEqn::eval(std::vector<Eigen::MatrixXd>& matricies, Coordinates& coord, Constants& consts, Actuators& acts, double t)
+{
+    $jac_replacements
+
+    $jac_expressions
+};
+
+
+// ============================================================================
+//                  Mass Matrix Equations Implementation
+// ============================================================================
+void MassMatEqn::assemble(Eigen::Ref<Eigen::VectorXi> cols)
+{
+    $mas_submatrices
+};
+
+void MassMatEqn::eval(std::vector<Eigen::MatrixXd>& matricies, Coordinates& coord, Constants& consts, Actuators& acts, double t, Configuration& config)
+{
+    $mas_replacements
+
+    $mas_expressions
+};
+
+// ============================================================================
+//                     Topology Class Implementation
+// ============================================================================
+
+// Topology Constructor
+// ====================
+Topology::Topology(std::string name, 
+            Eigen::Ref<Eigen::VectorXd> q, 
+            Eigen::Ref<Eigen::VectorXd> qd, 
+            Eigen::Ref<Eigen::VectorXd> qdd,
+            Eigen::Ref<Eigen::VectorXd> lgr)
+
+    : // Initializer list initializing the needed struct memebrs.
+        prefix(name), coord(q, qd, qdd, lgr)
+
+{
+    pos_eq.resize(nc);
+    vel_eq.resize(nc);
+    acc_eq.resize(nc);
+    frc_eq.resize(n);
+    rct_eq.resize(6*$n_joints);
+
+    jac_eq.reserve($nnz);
+    mas_eq.reserve(2 * ncols);
+
+    jac_rows.resize($nnz);
+    jac_cols.resize($nnz);
+
+};
+
+// Topology initializer and assembler
+// ==================================
+void Topology::initialize()
+{
+    Dict_SS interface_map;
+    map_indicies();
+    assemble(indicies_map, interface_map, 0);
+    coord.q << config.q;
+    coord.qd << config.qd;
+};
+
+void Topology::map_indicies()
+{
+    int i = 0;
+    for (auto& name : bodies_names) {indicies_map[prefix + name] = i; i++;};
+};
+
+
+void Topology::assemble(Dict_SI& indicies_map, Dict_SS& interface_map, int rows_offset)
+{
+    set_mapping(indicies_map, interface_map);
+
+    jac_rows << $jac_rows;
+    jac_rows += (rows_offset * Eigen::VectorXi::Ones(jac_rows.size()) );
+
+    jac_cols << 
+        $jac_cols;
+
+    jac_eq_obj.assemble(jac_rows, jac_cols);
+    mas_eq_obj.assemble(mas_cols);
+    consts.assemble(config);
+};
+
+
+void Topology::set_mapping(Dict_SI& indicies_map, Dict_SS& interface_map)
+{
+    auto& p = this-> prefix;
+
+    $indicies_map
+
+    $virtuals
+};
+
+void Topology::eval_pos_eq()
+{
+    pos_eq_obj.eval(pos_eq, coord, consts, acts, t);
+};
+
+void Topology::eval_vel_eq()
+{
+    vel_eq_obj.eval(vel_eq, coord, consts, acts, t);
+};
+
+void Topology::eval_acc_eq()
+{
+    acc_eq_obj.eval(acc_eq, coord, consts, acts, t);
+};
+
+void Topology::eval_frc_eq()
+{
+    frc_eq_obj.eval(frc_eq, coord, consts, acts, t, config);
+};
+
+void Topology::eval_jac_eq()
+{
+    jac_eq.clear();
+    jac_eq_obj.eval(jac_eq, coord, consts, acts, t);
+};
+
+void Topology::eval_mas_eq()
+{
+    mas_eq.clear();
+    mas_eq_obj.eval(mas_eq, coord, consts, acts, t, config);
+};
+
+
+void Topology::eval_reactions()
+{
+    $rct_expressions1
+
+    //$rct_return1;
+};
+
+void Topology::eval_reactions(Eigen::Ref<SparseBlock> jacobian)
+{
+    $rct_expressions2
+
+    rct_eq << $rct_return2;
+};

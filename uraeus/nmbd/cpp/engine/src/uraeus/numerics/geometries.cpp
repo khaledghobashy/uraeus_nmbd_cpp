@@ -142,9 +142,9 @@ geometry sphere_geometry(Eigen::Vector3d& p1, double& ro)
 {
     geometry geo;
 
-    double vol = (22/7) * (4/3) * std::pow(ro, 3);
+    double vol = (22./7) * (4./3) * std::pow(ro, 3);
     double m   = 7.9*1e-3 * vol;
-    double Jp  = (2/5) * m * std::pow(ro, 2);
+    double Jp  = (2./5) * m * std::pow(ro, 2);
 
     Eigen::DiagonalMatrix<double, 3> J(Jp, Jp, Jp);
     Eigen::Vector4d P{1, 0, 0, 0};

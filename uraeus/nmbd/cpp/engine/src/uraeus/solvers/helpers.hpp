@@ -8,18 +8,14 @@
 #include "eigen/Eigen/Dense"
 #include "eigen/Eigen/Eigen"
 #include "eigen/Eigen/Sparse"
-#include "eigen/Eigen/SparseLU"
 #include "boost/math/tools/numerical_differentiation.hpp"
 
 
 typedef Eigen::SparseMatrix<double, Eigen::ColMajor> SparseBlock;
-typedef Eigen::VectorXi Indicies;
 typedef std::vector<Eigen::MatrixXd> DataBlocks;
-typedef std::vector<Eigen::Triplet<double>> Container;
+typedef std::vector<Eigen::Triplet<double>> TripletList;
 
 double derivative(std::function<double(double)> func, double x, int order);
-//void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
-//void DenseAssembler(Eigen::MatrixXd& mat, Indicies& rows, Indicies& cols, DataBlocks& data);
 
 
 class MatrixAssembler
@@ -27,13 +23,19 @@ class MatrixAssembler
 
 public:
     MatrixAssembler() = delete;
-    MatrixAssembler(Indicies& rows, Indicies& cols, Container& container);
+    MatrixAssembler(Eigen::Ref<Eigen::VectorXi> rows,
+                    Eigen::Ref<Eigen::VectorXi> cols,
+                    int dof = 0);
 
-    Indicies& rows;
-    Indicies& cols;
-    Container& container;
+    Eigen::Ref<Eigen::VectorXi> rows;
+    Eigen::Ref<Eigen::VectorXi> cols;
+    
+    TripletList container;
 
 public:
-    void Assemble(SparseBlock& matrix, DataBlocks& data);
+
+    void AssembleTripletList(DataBlocks& data);
+    void Assemble(SparseBlock& matrix);
+    void Assemble(SparseBlock& matrix, TripletList& extra_triplets);
 
 };
