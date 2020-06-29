@@ -240,7 +240,7 @@ class template_codegen(abstract_generator):
         
         default_functions_text = \
         '''
-        Soln.model.acts.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
+        Sim.model.acts.{UF} = [] (double t)->Eigen::Vector3d{{return Eigen::Vector3d::Zero(3);}};
         '''
        
         default_functions = [default_functions_text.format(UF = i)\
@@ -256,7 +256,7 @@ class template_codegen(abstract_generator):
         '''
         void Simulation::set_{UF}(std::function<double(double)> func)
         {{
-            Soln.model.acts.{UF} = func;
+            Sim.model.acts.{UF} = func;
         }};
         '''
 

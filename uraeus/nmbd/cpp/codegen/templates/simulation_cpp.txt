@@ -8,11 +8,11 @@ Simulation::Simulation()
 
 void Simulation::ConstructConfiguration(std::string fileName)
 {
-    Soln.model.config.constructFromJSON(fileName);
-    Soln.model.config.set_inital_configuration();
+    Sim.model.config.constructFromJSON(fileName);
+    Sim.model.config.set_inital_configuration();
 
     std::cout << "\nInitializing Model!" << std::endl;
-    Soln.initialize();
+    Sim.Initialize();
 
     $default_functions
 
@@ -21,15 +21,13 @@ void Simulation::ConstructConfiguration(std::string fileName)
 
 void Simulation::Solve(double simTime, double steps)
 {
-    Soln.set_time_array(simTime, steps);
-    Soln.Solve();
+    Sim.SetTimeArray(simTime, steps);
+    Sim.Solve();
 };
 
-void Simulation::SaveResults(std::string location, std::string name, int level)
+void Simulation::SaveResults(std::string location, std::string name)
 {
-    if (level != 4) {Soln.ExportResultsCSV(location, name, level);}
-    else {Soln.ExportReactionsResults(location, name);};
-    
+    Sim.ExportStates(location, name);    
 };
 
 

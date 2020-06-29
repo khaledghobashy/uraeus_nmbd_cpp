@@ -17,7 +17,7 @@ cdef extern from "../src/simulation.hpp":
         
         void Solve(double simTime, double steps)
         void ConstructConfiguration(string fileName)
-        void SaveResults(string location, string name, int level)
+        void SaveResults(string location, string name)
         
         # User Defined Functions to be provided for the simulation instance
         # -----------------------------------------------------------------

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <numeric>
-#include "uraeus/solvers/solvers.hpp"
+#include "uraeus/solvers/Solver_DDS.hpp"
+
 #include "$topology_name.hpp"
 
 using namespace $topology_name;
@@ -13,12 +14,12 @@ public:
     Simulation();
 
 private:
-    Solver<Topology> Soln;
+    Solver<Topology> Sim;
 
 public:
     void Solve(double simTime, double steps);
     void ConstructConfiguration(std::string fileName);
-    void SaveResults(std::string location, std::string name, int level);
+    void SaveResults(std::string location, std::string name);
 
 public:
     $user_functions

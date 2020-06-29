@@ -18,8 +18,8 @@ cdef class PySimulation:
     def solve(self, double simTime, double steps):
         self.sim.Solve(simTime, steps)
 
-    def save_results(self, string location, string name, int level):
-        self.sim.SaveResults(location, name, level)
+    def save_results(self, string location, string name):
+        self.sim.SaveResults(location, name)
     
     def construct_configuration(self, string fileName):
         self.sim.ConstructConfiguration(fileName)

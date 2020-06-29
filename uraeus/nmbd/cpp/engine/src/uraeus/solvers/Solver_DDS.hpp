@@ -101,10 +101,20 @@ public:
 
     Solver();
 
-    void set_time(double& t);
-    void set_time_array(const double& duration, const double& spacing);
+    void SetTimeArray(const double& duration, const double& spacing);
     
-    void initialize();
+    void Initialize();
+    void Solve();
+
+    void ExportStates(std::string location, std::string name);
+    void ExportReactions(std::string location, std::string name);
+    void ExportLagrangeMultipliers(std::string location, std::string name);    
+    
+    Eigen::VectorXd SSODE(Eigen::VectorXd _StateVectorD0, double t, double h);
+
+private:
+
+    void SetTime(double& t);
 
     Eigen::VectorXd eval_pos_eq();
     Eigen::VectorXd eval_vel_eq();
@@ -115,46 +125,20 @@ public:
     void eval_jac_eq();
     void eval_mas_eq();
 
-    void solve_constraints();
-    void Solve();
-
+    void SolveConstraints();
     void PartitionSystemCoordinates();
+    void ExtractIndependentIndices(Eigen::VectorXi indices);
     void ConstructCoeffMatrix();
-    void SolveNE_EOM();
+    void SolveEOM();
     void ConstructStateVectors();
     void AdvanceTimeStep();
-    Eigen::VectorXd SSODE(Eigen::VectorXd _StateVectorD0, double t, double h);
 
     void UpdateHistories();
-    void get_indices(Eigen::VectorXi indices);
-
     void ConstructCoordinatesNames();
-    
     void ExportState(std::string location, std::string name, int id);
     
-    void ExportStates(std::string location, std::string name);
-    void ExportReactions(std::string location, std::string name);
-    void ExportLagrangeMultipliers(std::string location, std::string name);    
-
 };
 
-template<class T>
-void Solver<T>::ConstructCoordinatesNames()
-{
-    std::map<int, std::string> ordered_indicies;
-    for (const auto& x : model.indicies_map) { ordered_indicies[x.second] = x.first; };
-    
-    const std::vector<std::string> coordinates{"x", "y", "z", "e0", "e1", "e2", "e3"};
-    
-    for (const auto& x : ordered_indicies)
-    {
-        const auto& body_name = x.second;
-        for (const auto& coordinate : coordinates)
-        {
-          CoordinatesNames.emplace_back(body_name + "." + coordinate);
-        };
-    };
-};
 // ============================================================================ 
 //                         CLASS Constructors
 // ============================================================================
@@ -189,7 +173,7 @@ Solver<T>::Solver()
 // ============================================================================
 
 template<class T>
-void Solver<T>::initialize()
+void Solver<T>::Initialize()
 {
     model.initialize();
     qd = Eigen::VectorXd::Zero(model.n);
@@ -197,13 +181,25 @@ void Solver<T>::initialize()
 };
 
 template<class T>
-void Solver<T>::set_time(double& t)
+void Solver<T>::ConstructCoordinatesNames()
 {
-    model.t = t;
+    std::map<int, std::string> ordered_indicies;
+    for (const auto& x : model.indicies_map) { ordered_indicies[x.second] = x.first; };
+    
+    const std::vector<std::string> coordinates{"x", "y", "z", "e0", "e1", "e2", "e3"};
+    
+    for (const auto& x : ordered_indicies)
+    {
+        const auto& body_name = x.second;
+        for (const auto& coordinate : coordinates)
+        {
+          CoordinatesNames.emplace_back(body_name + "." + coordinate);
+        };
+    };
 };
 
 template<class T>
-void Solver<T>::set_time_array(const double& duration, const double& spacing)
+void Solver<T>::SetTimeArray(const double& duration, const double& spacing)
 {
     if (duration > spacing)
     {   
@@ -216,6 +212,13 @@ void Solver<T>::set_time_array(const double& duration, const double& spacing)
         time_array = Eigen::VectorXd::LinSpaced(spacing, 0, duration);
         step_size = duration/spacing;
     }
+};
+
+
+template<class T>
+void Solver<T>::SetTime(double& t)
+{
+    model.t = t;
 };
 
 
@@ -289,7 +292,7 @@ void Solver<T>::eval_rct_eq()
 // ============================================================================
 
 template<class T>
-void Solver<T>::solve_constraints()
+void Solver<T>::SolveConstraints()
 {    
    //std::cout << "Evaluating Pos_Eq " << "\n";
     Eigen::VectorXd b(model.n);
@@ -358,9 +361,9 @@ void Solver<T>::Solve()
 
     eval_jac_eq();
     PartitionSystemCoordinates();
-    solve_constraints();
+    SolveConstraints();
     ConstructCoeffMatrix();
-    SolveNE_EOM();
+    SolveEOM();
 
     eval_rct_eq();
     UpdateHistories();
@@ -415,7 +418,7 @@ void Solver<T>::PartitionSystemCoordinates()
     CoordinatesPermutation = Decomposition.permutationP();
     auto& indices = CoordinatesPermutation.indices();
         
-    get_indices(indices);
+    ExtractIndependentIndices(indices);
 
     //JacobianAssembler.AssembleTripletList(model.jac_eq);
     JacobianAssembler.Assemble(JacobianMod, extra_triplets);
@@ -423,7 +426,7 @@ void Solver<T>::PartitionSystemCoordinates()
 };
 
 template<class T>
-void Solver<T>::get_indices(Eigen::VectorXi indices)
+void Solver<T>::ExtractIndependentIndices(Eigen::VectorXi indices)
 {
     Eigen::Index index;
 
@@ -497,7 +500,7 @@ void Solver<T>::ConstructCoeffMatrix()
 }
 
 template<class T>
-void Solver<T>::SolveNE_EOM()
+void Solver<T>::SolveEOM()
 {
     //std::cout << "Filling NE_EOM_rhs vector !!\n";
     NE_EOM_rhs << eval_frc_eq(), -eval_acc_eq();
@@ -521,7 +524,7 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd _StateVectorD0, double t, doubl
     const auto& y1 = _StateVectorD0.head(dof);
     const auto& y2 = _StateVectorD0.tail(dof);
 
-    set_time(t);
+    SetTime(t);
 
     q   = pos_history.back();
     qd  = vel_history.back();
@@ -537,8 +540,8 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd _StateVectorD0, double t, doubl
         i--;
     };
 
-    //std::cout << "solve_constraints() \n";
-    solve_constraints();
+    //std::cout << "SolveConstraints() \n";
+    SolveConstraints();
 
     //std::cout << "vel_rhs << -vel_rhs_nc, y2; \n";
     Eigen::VectorXd vel_rhs(model.n);
@@ -550,8 +553,8 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd _StateVectorD0, double t, doubl
 
     //std::cout << "ConstructCoeffMatrix() \n";
     ConstructCoeffMatrix();
-    //std::cout << "SolveNE_EOM() \n";
-    SolveNE_EOM();
+    //std::cout << "SolveEOM() \n";
+    SolveEOM();
 
     const auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
@@ -733,7 +736,7 @@ void Solver<T>::PartitionSystemCoordinates(int d)
     //LUSolver.solve(-b);
 
     //ConstructCoeffMatrix();
-    //SolveNE_EOM();
+    //SolveEOM();
 
     //std::cout << "Permuted Coordinates = \n" << (CoordinatesPermutation * q).segment(model.nc, dof) << "\n";
     //std::cout << "Permuted Velocities = \n" << (CoordinatesPermutation * qd).segment(model.nc, dof) << "\n";
