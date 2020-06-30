@@ -20,10 +20,10 @@
 
 #### Simulation
 
-- Solvers for **Kinematically Driven Systems** that can be used for:
+- Solver for **Kinematically Driven Systems** that can be used for:
   - Kinematic analysis (forward and inverse).
   - Inverse dynamic analysis.
-- Solvers for **Dynamically Driven Systems** that can be used for:
+- Solver for **Dynamically Driven Systems** that can be used for:
   - Forward dynamic analysis.
   - Equilibrium analysis.
 
