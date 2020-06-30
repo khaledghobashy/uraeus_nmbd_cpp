@@ -1,5 +1,5 @@
 
-#include "helpers.hpp"
+#include "sparse_assembler.hpp"
 
 
 MatrixAssembler::MatrixAssembler(
@@ -80,22 +80,6 @@ void MatrixAssembler::Assemble(SparseBlock& matrix, TripletList& extra_triplets)
     matrix.makeCompressed();
 };
 
-
-
-double derivative(std::function<double(double)> func, double x, int order = 1)
-{
-    using namespace boost::math::tools;
-
-    if(order == 1)
-    {
-        return finite_difference_derivative(func, x);
-    }
-    else
-    {
-        return derivative([&func](double y) { return finite_difference_derivative(func, y); }, x, order-1);
-    };
-
-};
 
 /* 
 void SparseAssembler(SparseBlock& mat, Indicies& rows, Indicies& cols, DataBlocks& data)

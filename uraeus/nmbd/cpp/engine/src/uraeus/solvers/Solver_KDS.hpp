@@ -25,7 +25,7 @@ Authors:
 #include <map>
 
 // Local Libraries Includes.
-#include "helpers.hpp"
+#include "sparse_assembler.hpp"
 #include "utilities.hpp"
 
 

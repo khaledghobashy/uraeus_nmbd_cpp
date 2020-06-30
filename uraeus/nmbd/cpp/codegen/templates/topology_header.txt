@@ -10,12 +10,13 @@
 // uraeus library includes.
 #include <uraeus/numerics/euler_parameters.hpp>
 #include <uraeus/numerics/spatial_algebra.hpp>
-#include <uraeus/solvers/helpers.hpp>
+#include <uraeus/numerics/helpers.hpp>
 
 #include <uraeus/systems/configuration.hpp>
 
 typedef std::map<std::string, std::string> Dict_SS;
 typedef std::map<std::string, int> Dict_SI;
+typedef Eigen::SparseMatrix<double, Eigen::ColMajor> SparseBlock;
 
 // Declaring the Topology Namespace.
 // =================================

@@ -28,7 +28,7 @@ Authors:
 #include "eigen/Eigen/SparseQR"
 
 // Local Libraries Includes.
-#include "helpers.hpp"
+#include "sparse_assembler.hpp"
 #include "utilities.hpp"
 #include "integrators.hpp"
 

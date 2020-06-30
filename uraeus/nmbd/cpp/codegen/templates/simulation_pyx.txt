@@ -18,11 +18,14 @@ cdef class PySimulation:
     def solve(self, double simTime, double steps):
         self.sim.Solve(simTime, steps)
 
-    def save_results(self, string location, string name):
-        self.sim.SaveResults(location, name)
+    def save_results(self, str location, str name):
+        location_b = location.encode('utf-8')
+        name_b = name.encode('utf-8')
+        self.sim.SaveResults(location_b, name_b)
     
-    def construct_configuration(self, string fileName):
-        self.sim.ConstructConfiguration(fileName)
+    def construct_configuration(self, str fileName):
+        fileName_b = fileName.encode('utf-8')
+        self.sim.ConstructConfiguration(fileName_b)
     
     # User Defined Functions to be provided for the simulation instance
     # -----------------------------------------------------------------
