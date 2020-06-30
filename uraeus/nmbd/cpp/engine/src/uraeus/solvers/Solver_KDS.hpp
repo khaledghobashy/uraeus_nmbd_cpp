@@ -29,8 +29,16 @@ Authors:
 #include "utilities.hpp"
 
 
+
+// ============================================================================ 
+//                         Solver Template Class
+// ============================================================================
+
+namespace kds
+{
+
 // csv file formatter to export Eigen matricies as comma separated value text.
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, 
+static const Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, 
                                        Eigen::DontAlignCols, 
                                        ", ", ", ", "", "", "", ",");
 
@@ -58,23 +66,36 @@ public:
     double step_size;
     Eigen::VectorXd time_array;
 
+    Eigen::SparseLU<SparseBlock> LUSolver;
+
+private:
+    std::map<int, std::vector<Eigen::VectorXd>*> results;
+    std::map<int, std::string> results_names;
+    
     std::vector<Eigen::VectorXd> pos_history;
     std::vector<Eigen::VectorXd> vel_history;
     std::vector<Eigen::VectorXd> acc_history;
     std::vector<Eigen::VectorXd> lgr_history;
     std::vector<Eigen::VectorXd> rct_history;
 
-    Eigen::SparseLU<SparseBlock> SparseSolver;
-
+    std::vector<std::string> CoordinatesNames;
 
 public:
 
     Solver();
 
-    void set_time(double& t);
-    void set_time_array(const double& duration, const double& spacing);
+    void SetTimeArray(const double& duration, const double& spacing);
     
-    void initialize();
+    void Initialize();
+    void Solve();
+
+    void ExportStates(std::string location, std::string name);
+    void ExportReactions(std::string location, std::string name);
+    void ExportLagrangeMultipliers(std::string location, std::string name);    
+
+private:
+
+    void SetTime(double& t);
 
     Eigen::VectorXd eval_pos_eq();
     Eigen::VectorXd eval_vel_eq();
@@ -85,19 +106,12 @@ public:
     void eval_jac_eq();
     void eval_mas_eq();
 
+    void SolveConstraints();
     void solve_lgr_multipliers();
 
-    void solve_constraints();
-    void Solve();
-
-    void ExportResultsCSV(std::string location, std::string name, int id);
-    void ExportReactionsResults(std::string location, std::string name);
-    void ExportLagrangeMultipliers(std::string location, std::string name);
-
-
-private:
-    std::map<int, std::vector<Eigen::VectorXd>*> results;
-    std::map<int, std::string> results_names;
+    void UpdateHistories();
+    void ConstructCoordinatesNames();
+    void ExportState(std::string location, std::string name, int id);
 
 };
 
@@ -122,15 +136,38 @@ Solver<T>::Solver()
     results_names[4] = "_rct";
 };
 
+// ============================================================================ 
+//                              Helper Methods
+// ============================================================================
 
 template<class T>
-void Solver<T>::set_time(double& t)
+void Solver<T>::Initialize()
 {
-    model.t = t;
+    model.initialize();
+    qd = Eigen::VectorXd::Zero(model.n);
+    ConstructCoordinatesNames();
 };
 
 template<class T>
-void Solver<T>::set_time_array(const double& duration, const double& spacing)
+void Solver<T>::ConstructCoordinatesNames()
+{
+    std::map<int, std::string> ordered_indicies;
+    for (const auto& x : model.indicies_map) { ordered_indicies[x.second] = x.first; };
+    
+    const std::vector<std::string> coordinates{"x", "y", "z", "e0", "e1", "e2", "e3"};
+    
+    for (const auto& x : ordered_indicies)
+    {
+        const auto& body_name = x.second;
+        for (const auto& coordinate : coordinates)
+        {
+          CoordinatesNames.emplace_back(body_name + "." + coordinate);
+        };
+    };
+};
+
+template<class T>
+void Solver<T>::SetTimeArray(const double& duration, const double& spacing)
 {
     if (duration > spacing)
     {   
@@ -145,11 +182,27 @@ void Solver<T>::set_time_array(const double& duration, const double& spacing)
     }
 };
 
+
 template<class T>
-void Solver<T>::initialize()
+void Solver<T>::SetTime(double& t)
 {
-    model.initialize();
+    model.t = t;
 };
+
+
+template<class T>
+void Solver<T>::UpdateHistories()
+{
+    pos_history.emplace_back(q);
+    vel_history.emplace_back(qd);
+    acc_history.emplace_back(qdd);
+    lgr_history.emplace_back(lgr);
+    rct_history.emplace_back(model.rct_eq);
+};
+
+// ============================================================================ 
+//                         System Equations Evaluators
+// ============================================================================
 
 
 template<class T>
@@ -184,15 +237,16 @@ template<class T>
 void Solver<T>::eval_jac_eq()
 {   
     model.eval_jac_eq();
-    JacobianAssembler.Assemble(Jacobian, model.jac_eq);
+    JacobianAssembler.AssembleTripletList(model.jac_eq);
+    JacobianAssembler.Assemble(Jacobian);
 };
 
 template<class T>
 void Solver<T>::eval_mas_eq()
 {   
-    model.mas_eq.clear();
     model.eval_mas_eq();
-    MassAssembler.Assemble(MassMatrix, model.mas_eq);
+    MassAssembler.AssembleTripletList(model.mas_eq);
+    MassAssembler.Assemble(MassMatrix);
 };
 
 template<class T>
@@ -200,6 +254,10 @@ void Solver<T>::eval_rct_eq()
 {   
     model.eval_reactions(Jacobian);    
 };
+
+// ============================================================================ 
+//                          Lagrange Multipliers Solver
+// ============================================================================
 
 template<class T>
 void Solver<T>::solve_lgr_multipliers()
@@ -214,25 +272,25 @@ void Solver<T>::solve_lgr_multipliers()
     //std::cout << eval_frc_eq().transpose() << "\n\n";
 };
 
+// ============================================================================ 
+//                    Position Constraints Iterative Solver
+// ============================================================================
+
+
 template<class T>
-void Solver<T>::solve_constraints()
+void Solver<T>::SolveConstraints()
 {    
     // Creating a SparseSolver object.
-    //std::cout << "Declaring SparseLU" << "\n";
-    //Eigen::SparseLU<SparseBlock> SparseSolver;
 
-    //std::cout << "Setting Guess" << "\n";
-    //std::cout << guess << "\n";
-    //q = guess;
     //std::cout << "Evaluating Pos_Eq " << "\n";
     auto&& b = eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
     eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd error = SparseSolver.solve(-b);
+    Eigen::VectorXd error = LUSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -243,13 +301,13 @@ void Solver<T>::solve_constraints()
         //q = guess;
         q += error;
         b = eval_pos_eq();
-        error = SparseSolver.solve(-b);
+        error = LUSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
         {
             eval_jac_eq();
-            SparseSolver.compute(Jacobian);
-            error = SparseSolver.solve(-b);
+            LUSolver.compute(Jacobian);
+            error = LUSolver.solve(-b);
         };
 
         if (itr>50)
@@ -261,11 +319,13 @@ void Solver<T>::solve_constraints()
         itr++;
     };
     
-    //q = guess;
     eval_jac_eq();
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 };
 
+// ============================================================================ 
+//                              Simulation Loop
+// ============================================================================
 
 template<class T>
 void Solver<T>::Solve()
@@ -282,27 +342,21 @@ void Solver<T>::Solve()
     lgr_history.reserve(samples);
     rct_history.reserve(samples);
     
-    //Eigen::VectorXd guess(model.n);
-
     //std::cout << "Computing Jacobian" << "\n";
     eval_jac_eq();
     //std::cout << "Factorizing Jacobian" << "\n";
-    SparseSolver.compute(Jacobian);
+    LUSolver.compute(Jacobian);
 
     //std::cout << "Solving for Velocity" << "\n";
-    qd = SparseSolver.solve(-eval_vel_eq());
+    qd = LUSolver.solve(-eval_vel_eq());
     
     //std::cout << "Solving for Accelerations" << "\n";
-    qdd = SparseSolver.solve(-eval_acc_eq());
+    qdd = LUSolver.solve(-eval_acc_eq());
 
     solve_lgr_multipliers();
     eval_rct_eq();
 
-    pos_history.emplace_back(q);
-    vel_history.emplace_back(qd);
-    acc_history.emplace_back(qdd);
-    lgr_history.emplace_back(lgr);
-    rct_history.emplace_back(model.rct_eq);
+    UpdateHistories();
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
@@ -313,23 +367,19 @@ void Solver<T>::Solve()
         print_progress(begin, samples, i);
 
         t = time_array(i) ;
-        set_time(t) ;
+        SetTime(t) ;
 
         q += (qd * dt) + (0.5 * qdd * (dt*dt));
 
-        solve_constraints();
+        SolveConstraints();
 
-        qd  = SparseSolver.solve(-eval_vel_eq());
-        qdd = SparseSolver.solve(-eval_acc_eq());
+        qd  = LUSolver.solve(-eval_vel_eq());
+        qdd = LUSolver.solve(-eval_acc_eq());
 
         solve_lgr_multipliers();
         eval_rct_eq();
         
-        pos_history.emplace_back(q);
-        vel_history.emplace_back(qd);
-        acc_history.emplace_back(qdd);
-        lgr_history.emplace_back(lgr);
-        rct_history.emplace_back(model.rct_eq);
+        UpdateHistories();
 
     };
 
@@ -344,39 +394,43 @@ void Solver<T>::Solve()
 
 };
 
+// ============================================================================ 
+//                          Results Export Methods
+// ============================================================================
 
 template<class T>
-void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
+void Solver<T>::ExportStates(std::string location, std::string name)
+{
+    ExportState(location, name, 0);
+    ExportState(location, name, 1);
+    ExportState(location, name, 2);
+};
+
+template<class T>
+void Solver<T>::ExportState(std::string location, std::string name, int id)
 {
     // declaring and initializing the needed variables
-    auto& data = *(results[id]);
+    const auto& data = *(results[id]);
     std::ofstream results_file;
-
-    std::map<int, std::string> ordered_indicies;
-    for (auto& x : model.indicies_map) { ordered_indicies[x.second] = x.first; };
 
     // Creating the system indicies string to be used as the fisrt line
     // in the .csv file
     std::string indicies = "";
-    std::vector<std::string> coordinates{"x", "y", "z", "e0", "e1", "e2", "e3"};
-    for (auto& x : ordered_indicies)
+    for (const auto& coordinate : CoordinatesNames)
     {
-        auto& body_name = x.second;
-        for (auto& coordinate : coordinates)
-        {
-          indicies += body_name + "." + coordinate + "," ;
-        };
+        indicies += coordinate + "," ;
     };
 
     // Opening the file as a .csv file.
-    results_file.open (location + name + results_names[id] + ".csv");
+    std::string fileFullname = location + name + results_names[id] + ".csv";
+    results_file.open (fileFullname);
     
     // Inserting the first line to be the indicies of the system.
     results_file << ", " + indicies + "time\n";
 
     // Looping over the results and writing each line to the .csv file.
     int i = 0;
-    for (auto& x : data)
+    for (const auto& x : data)
     {
         results_file << std::to_string(i) + ", ";
         results_file << x.transpose().format(CSVFormat) ;
@@ -385,12 +439,12 @@ void Solver<T>::ExportResultsCSV(std::string location, std::string name, int id)
     };
 
     results_file.close();
-    std::cout << "\n" << name << " results saved as : " << location + name + ".csv" << "\n";
+    std::cout << "\n" << results_names[id] << " results saved as : " << fileFullname << "\n";
     
 };
 
 template<class T>
-void Solver<T>::ExportReactionsResults(std::string location, std::string name)
+void Solver<T>::ExportReactions(std::string location, std::string name)
 {
     // declaring and initializing the needed variables
     //std::cout << "Getting reactions Data!\n\n";
@@ -465,3 +519,8 @@ void Solver<T>::ExportLagrangeMultipliers(std::string location, std::string name
     
 };
 
+}; // namespace kds
+
+// ============================================================================ 
+// ============================================================================
+// ============================================================================
