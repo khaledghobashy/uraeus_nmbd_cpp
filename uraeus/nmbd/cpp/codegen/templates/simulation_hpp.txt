@@ -1,12 +1,24 @@
 #pragma once
 
+// standard library includes
 #include <numeric>
-#include "uraeus/solvers/Solver_DDS.hpp"
 
+// uraeus library includes
+#include <uraeus/solvers/solvers.hpp>
+
+// local topologies includes
 #include "$topology_name.hpp"
 
 using namespace $topology_name;
 
+// selecting solver type based on the system constraints condition,
+// whether it is fully or under constrained model.
+typedef std::conditional<
+        Topology::n == Topology::nc, 
+        kds::Solver<Topology>, 
+        dds::Solver<Topology>>::type Solver;
+
+// basic Simulation class exposing minimal API for usage by the user.
 class Simulation
 {
 
@@ -14,7 +26,7 @@ public:
     Simulation();
 
 private:
-    Solver<Topology> Sim;
+    Solver Sim;
 
 public:
     void Solve(double simTime, double steps);
