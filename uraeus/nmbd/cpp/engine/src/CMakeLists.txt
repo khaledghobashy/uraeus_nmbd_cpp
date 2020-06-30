@@ -30,6 +30,7 @@ install(
         uraeus/solvers/utilities.hpp
         uraeus/solvers/Solver_DDs.hpp
         uraeus/solvers/Solver_KDs.hpp
+        uraeus/solvers/solvers.hpp
         uraeus/solvers/sparse_assembler.hpp
         uraeus/solvers/integrators.hpp
         uraeus/systems/configuration.hpp
