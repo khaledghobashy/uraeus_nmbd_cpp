@@ -33,14 +33,19 @@ Authors:
 #include "integrators.hpp"
 
 
-// csv file formatter to export Eigen matricies as comma separated value text.
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, 
-                                       Eigen::DontAlignCols, 
-                                       ", ", ", ", "", "", "", ",");
 
 // ============================================================================ 
 //                         Solver Template Class
 // ============================================================================
+
+namespace dds
+{
+
+// csv file formatter to export Eigen matricies as comma separated value text.
+static const Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, 
+                                       Eigen::DontAlignCols, 
+                                       ", ", ", ", "", "", "", ",");
+
 
 // Declaring and Implementing the Solver class as a template class.
 // Type T should be any Topology class type.
@@ -67,7 +72,7 @@ public:
     Eigen::SparseMatrix<double, Eigen::ColMajor> CoeffMatrix {model.n + model.nc, model.n + model.nc};
     Eigen::PermutationMatrix<T::n, T::n, int> CoordinatesPermutation{model.n};
     
-    Eigen::VectorXd NE_EOM_rhs{model.n + model.nc};
+    Eigen::VectorXd EOM_rhs{model.n + model.nc};
     Eigen::VectorXd StateVectorD0;
     Eigen::VectorXd StateVectorD1;
     Eigen::VectorXd time_array;
@@ -502,14 +507,14 @@ void Solver<T>::ConstructCoeffMatrix()
 template<class T>
 void Solver<T>::SolveEOM()
 {
-    //std::cout << "Filling NE_EOM_rhs vector !!\n";
-    NE_EOM_rhs << eval_frc_eq(), -eval_acc_eq();
+    //std::cout << "Filling EOM_rhs vector !!\n";
+    EOM_rhs << eval_frc_eq(), -eval_acc_eq();
 
     //std::cout << "Calling LUSolver.compute(CoeffMatrix) !!\n";
     LUSolver.compute(CoeffMatrix);
     //std::cout << "LUSolver.info = \n" << LUSolver.info() << "\n";
-    //std::cout << "Calling LUSolver.solve(NE_EOM_rhs) !!\n";
-    auto x = LUSolver.solve(NE_EOM_rhs);
+    //std::cout << "Calling LUSolver.solve(EOM_rhs) !!\n";
+    auto x = LUSolver.solve(EOM_rhs);
 
     //std::cout << "Calling qdd = x.segment(0, model.n) !!\n";
     qdd = x.segment(0, model.n);
@@ -693,54 +698,9 @@ void Solver<T>::ExportLagrangeMultipliers(std::string location, std::string name
     
 };
 
+}; // namespace dds
+
 // ============================================================================ 
 // ============================================================================
 // ============================================================================
 
-/* 
-
-template<class T>
-void Solver<T>::PartitionSystemCoordinates(int d)
-{
-    //eval_jac_eq();
-    QRSolver.compute(Jacobian);
-
-    //auto q_dummy = Eigen::VectorXd::LinSpaced(28, 0, 28-1);
-
-    CoordinatesPermutation = QRSolver.colsPermutation();
-    auto& indices = CoordinatesPermutation.indices();
-    
-    //std::cout << "System rank : " << QRSolver.rank() << "\n";
-    //std::cout << "q : \n" << q_dummy << "\n";
-    //std::cout << "CoordinatesPermutation * q : \n" << CoordinatesPermutation * q_dummy << "\n";
-    //std::cout << "Permutation Matrix Shape : " << P.rows() << ", " << P.cols() << "\n";
-    //std::cout << "Permutation Matrix : \n" << P << "\n";
-    //std::cout << "Permutation Matrix Indices : \n" << indices << "\n";
-    
-    //std::cout << "Calling get_indices\n";
-    get_indices(indices, coord_indices, extra_triplets, dof);
-
-    //std::cout << "Calling JacobianAssembler.AssembleTripletList(model.jac_eq)\n";
-    JacobianAssembler.AssembleTripletList(model.jac_eq);
-
-    //std::cout << "Calling JacobianAssembler.Assemble(JacobianMod, extra_triplets)\n";
-    JacobianAssembler.Assemble(JacobianMod, extra_triplets);
-
-    //std::cout << "JacMod : \n" << JacobianMod.innerVectors(1,3) << "\n";
-
-    //Eigen::VectorXd b(model.n);
-    //b << eval_pos_eq();
-    //std::cout << "Poseq : \n" << b << "\n";
-
-    //LUSolver.compute(JacobianMod);
-    //LUSolver.solve(-b);
-
-    //ConstructCoeffMatrix();
-    //SolveEOM();
-
-    //std::cout << "Permuted Coordinates = \n" << (CoordinatesPermutation * q).segment(model.nc, dof) << "\n";
-    //std::cout << "Permuted Velocities = \n" << (CoordinatesPermutation * qd).segment(model.nc, dof) << "\n";
-    //std::cout << "Permuted Accelerations = \n" << (CoordinatesPermutation * qdd).segment(model.nc, dof) << "\n";
-};
-
- */
