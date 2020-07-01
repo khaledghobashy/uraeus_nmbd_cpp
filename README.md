@@ -2,13 +2,11 @@
 
 # uraeus.nmbd.cpp
 
-**Numerical Multi-Body Dynamics in C++** | A numerical simulation environment for constrained multi-body systems developed in **[uraeus.smbd]( https://github.com/khaledghobashy/uraeus-smbd )**.
-
-## Description
-
-**uraeus.nmbd.cpp** is a numerical simulation environment developed in C++. It generates numerical code for the symbolic models developed in **[uraeus.smbd]( https://github.com/khaledghobashy/uraeus-smbd )** and provides various numerical solvers for the different simulations' needs for multi-body systems.
+**Numerical Multi-Body Dynamics in C++** | A  numerical simulation environment developed in C++ for the numerical code-generation and numerical simulation of the symbolic models developed in **[uraeus.smbd]( https://github.com/khaledghobashy/uraeus-smbd )**.
 
 *Please visit **[uraeus.mbd]( https://github.com/khaledghobashy/uraeus_mbd )** for more information about **audience** , **fields of applications** and **background**.*
+
+---
 
 ## Features
 
@@ -16,22 +14,55 @@
 
 - Code-generation for symbolic standalone topologies.
 - Cython wrappers for selected C++ classes, exposing a minimal API that can be used from the python side to interact with the generated models.
-- CMakeLists.txt for automated cross-platform build-systems generation, building simulation executables and python extension modules.
+- CMakeLists.txt for automated cross-platform build-systems generation using CMake, building simulation executable and python extension modules.
 
 #### Simulation
 
-- Solver for **Kinematically Driven Systems** that can be used for:
-  - Kinematic analysis (forward and inverse).
-  - Inverse dynamic analysis.
-- Solver for **Dynamically Driven Systems** that can be used for:
-  - Forward dynamic analysis.
-  - Equilibrium analysis.
+- Solver for **Kinematically Driven Systems** that can be used for forward and inverse kinematic analysis as well as inverse dynamic analysis.
+- Solver for **Dynamically Driven Systems** that can be used for forward dynamic analysis and equilibrium analysis.
 
+#### Usage
 
+- Simple interaction with the generated models through a minimal API `Simulation` class,  exposing only the needed functionalities.
+  - Loading model configuration data from JSON file.
+  - Setting user-defined functions to control motion-actuators and generic force elements using normal C++ free-functions and lambda functions.
+  - Simulating the model for the desired time period and desired step-size.
+  - Saving the simulation results (positions, velocities, accelerations, reactions) as csv files, that can be used later for post-processing and visualizations in  [**uraeus.visenv.babylon**](https://github.com/khaledghobashy/uraeus_visenv_babylon).
+- Simple interaction with the generated models through python.
+  - Importing the model as a python module.
+  - Having access to the same minimal API of the  `Simulation` class.
+  - Defining functions to control motion-actuators and generic force-elements using your custom python functions.
+
+---
 
 ## Installation
 
-*ToDo*
+#### Prerequisites
+
+- [Git](https://git-scm.com/downloads), for cloning the project repository.
+- [CMake](https://cmake.org/download/), for build-systems generation. The project requires cmake 3.10 or higher.
+- A modern C++ compiler supporting C++17 standards. 
+  The project is tested with the [GNU](https://gcc.gnu.org/) gcc compiler on a Linux machine and the Microsoft C++ build tools [MSVC](https://visualstudio.microsoft.com/visual-cpp-build-tools/) on a Windows-10 machine.
+
+
+
+#### Getting the source-code
+
+You can clone or download the project on your machine. 
+
+For cloning, make sure you have [git](https://git-scm.com/downloads) installed on your machine and your system have access to the `git` commands through your terminal, command-prompt or power-shell.
+
+Open your terminal then type the below command:
+
+```bash
+git clone https://github.com/khaledghobashy/uraeus_nmbd_cpp.git
+```
+
+This will clone the project repository and download it on your machine in your current terminal directory.
+
+*t.b.c ...*
+
+
 
 ## Usage Examples & Tutorials
 
@@ -49,17 +80,9 @@
 
 *The **Implementation Details** will be provided in a separate documentation and linked here*
 
-## Theoretical Basis
-
-*The **Theoretical Basis** will be provided in a separate documentation and linked here*
-
 ## Support
 
 As the tool is developed and maintained by one developer for now, if you have any inquiries, do not hesitate to contact me at [khaled.ghobashy@live.com](mailto:khaled.ghobashy@live.com) or [kh.ghobashy@gmail.com](mailto:kh.ghobashy@gmail.com)
-
-## References
-
-*ToDo*
 
 ## License
 
