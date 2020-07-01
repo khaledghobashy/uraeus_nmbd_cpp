@@ -39,6 +39,9 @@
 
 #### Prerequisites
 
+- Python 3.6+.
+  If new to scientific computing in python, [Anaconda](https://www.anaconda.com/download/) is a recommended free python distribution from Continuum Analytics.
+- The [uraeus.smbd](https://github.com/khaledghobashy/uraeus-smbd) python package.
 - [Git](https://git-scm.com/downloads), for cloning the project repository.
 - [CMake](https://cmake.org/download/), for build-systems generation. The project requires cmake 3.10 or higher.
 - A modern C++ compiler supporting C++17 standards. 
@@ -49,7 +52,6 @@
 #### Getting the source-code
 
 You can clone or download the project on your machine. 
-
 For cloning, make sure you have [git](https://git-scm.com/downloads) installed on your machine and your system have access to the `git` commands through your terminal, command-prompt or power-shell.
 
 Open your terminal then type the below command:
