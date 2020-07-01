@@ -105,13 +105,9 @@ Now, the project can be found via other `cmake` projects, where the paths for th
 
 
 
-## Usage Examples & Tutorials
+## Examples
 
-*ToDo*
-
-### Detailed Example - Spatial Fourbar Mechanism
-
-*ToDo*
+*t.b.c ...*
 
 ## Roadmap
 
