@@ -266,8 +266,8 @@ void Solver<T>::solve_lgr_multipliers()
     Eigen::VectorXd ext_frc = eval_frc_eq();
     Eigen::VectorXd inertia = MassMatrix * qdd;
     Eigen::VectorXd rhs = ext_frc - inertia;
-    SparseSolver.compute(Jacobian.transpose());
-    lgr = SparseSolver.solve(rhs);
+    LUSolver.compute(Jacobian.transpose());
+    lgr = LUSolver.solve(rhs);
     //std::cout << (MassMatrix * qdd).transpose() << "\n\n";
     //std::cout << eval_frc_eq().transpose() << "\n\n";
 };
@@ -280,7 +280,7 @@ void Solver<T>::solve_lgr_multipliers()
 template<class T>
 void Solver<T>::SolveConstraints()
 {    
-    // Creating a SparseSolver object.
+    // Creating a LUSolver object.
 
     //std::cout << "Evaluating Pos_Eq " << "\n";
     auto&& b = eval_pos_eq();
@@ -331,7 +331,6 @@ template<class T>
 void Solver<T>::Solve()
 {
     std::cout << "Starting Solver ..." << "\n";
-    //Eigen::SparseLU<SparseBlock> SparseSolver;
     
     auto& dt = step_size;
     auto samples = time_array.size();
