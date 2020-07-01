@@ -40,7 +40,7 @@
 #### Prerequisites
 
 - Python 3.6+.
-  If new to scientific computing in python, [Anaconda](https://www.anaconda.com/download/) is a recommended free python distribution from Continuum Analytics.
+  If new to scientific computing in python, [Anaconda](https://www.anaconda.com/download/) is a recommended free python distribution from Continuum Analytics  which provides a nice coherent platform with most of the tools needed. 
 - The [uraeus.smbd](https://github.com/khaledghobashy/uraeus-smbd) python package.
 - [Git](https://git-scm.com/downloads), for cloning the project repository.
 - [CMake](https://cmake.org/download/), for build-systems generation. The project requires cmake 3.10 or higher.

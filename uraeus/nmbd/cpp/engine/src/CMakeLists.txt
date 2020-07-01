@@ -28,8 +28,8 @@ install(
         uraeus/numerics/geometries.hpp
         uraeus/numerics/helpers.hpp
         uraeus/solvers/utilities.hpp
-        uraeus/solvers/Solver_DDs.hpp
-        uraeus/solvers/Solver_KDs.hpp
+        uraeus/solvers/Solver_DDS.hpp
+        uraeus/solvers/Solver_KDS.hpp
         uraeus/solvers/solvers.hpp
         uraeus/solvers/sparse_assembler.hpp
         uraeus/solvers/integrators.hpp
