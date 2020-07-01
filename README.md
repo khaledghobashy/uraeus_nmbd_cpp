@@ -60,6 +60,47 @@ git clone https://github.com/khaledghobashy/uraeus_nmbd_cpp.git
 
 This will clone the project repository and download it on your machine in your current terminal directory.
 
+
+
+#### Building the project binaries
+
+On the same open terminal, go to the source-code directory via the command below:
+
+```bash
+cd uraeus_nmbd_cpp/uraeus/nmbd/cpp/engine
+```
+
+then create a `/build` directory by:
+
+```bash
+mkdir build
+cd build
+```
+
+Now, we generate the build-system using `cmake`:
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release
+```
+
+then we invoke the build process via `cmake --build`. For multiple configuration build systems, i.e. `msvc` use:
+
+```bash
+cmake --build . --config Release
+```
+
+For single configuration build systems, i.e. `make`, use:
+
+```bash
+cmake --build . 
+```
+
+This will build the project binaries and produce a shared library `uraeuslib` that will be used to link with the simulation executables and generated python extension modules.
+
+Now, the project can be found via other `cmake` projects, where the paths for the headers and libraries binaries are automatically configured for projects using `uraeus.nmbd.cpp`.
+
+
+
 *t.b.c ...*
 
 
