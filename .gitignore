@@ -28,6 +28,7 @@
 # sandbox directory
 # ----------------------------------------------------
 /uraeus/nmbd/cpp/engine/sandbox
+/demos/**/model
 
 # ----------------------------------------------------
 # Egg metadata
