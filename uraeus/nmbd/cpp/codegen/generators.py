@@ -694,6 +694,51 @@ class template_codegen(abstract_generator):
         return num_constants_text, sym_constants_text
     
 
+    def get_reactions_equations2(self):
+
+        expressions = []
+        returns = []
+        
+        row_offset = 0
+        for edge in self.mbs.constraints_graph.edges(data=True):
+            nc = edge[-1]['nc']
+            nve = edge[-1]['nve']
+            joint_name = edge[-1]['name']
+            body_name = edge[0]
+            def_locs = edge[-1]['class'].def_locs
+
+            col_offset = self.mbs.nodes_indicies[body_name] * 7
+            
+            try:
+                ubar_name = f'ubar_{body_name}_{edge[-1]["joint_name"]}'
+            except KeyError:
+                ubar_name = f'ubar_{body_name}_{joint_name}'
+            
+            text = [
+            f'// Joint Name : {joint_name}',
+            f'const Eigen::MatrixXd Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
+            f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
+            f'const Eigen::VectorXd F_{joint_name} = Q_{joint_name}.segment(0, 3);',
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*consts.{ubar_name})*F_{joint_name};' if def_locs \
+            else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
+            ]
+            
+            text = '\n'.join(text)        
+            expressions.append(text)
+            row_offset += nc
+
+            returns.append(f'F_{joint_name}')
+            returns.append(f'T_{joint_name}')
+        
+        expressions_text = '\n\n'.join(expressions)
+        expressions_text = textwrap.indent(expressions_text, 4*' ').lstrip()
+
+        reactions_return = ',\n'.join(returns) + ';'
+        reactions_return = textwrap.indent(reactions_return, 8*' ').lstrip()
+
+        return expressions_text, reactions_return
+
+
     def get_reactions_equations(self):
 
         expressions = []
@@ -710,6 +755,12 @@ class template_codegen(abstract_generator):
             R_blocks_text = ', '.join(R_exp) + ';'
             P_exp = [f'jac_eq[%s]'%(4*i + offset + 1) for i in range(nve)]
             P_blocks_text = ', '.join(P_exp) + ';'
+
+            print(edge[-1])
+            try:
+                ubar_name = f'ubar_{body_name}_{edge[-1]["joint_name"]}'
+            except KeyError:
+                ubar_name = f'ubar_{body_name}_{joint_name}'
             
             text = [
             f'// Joint Name : {joint_name}',
@@ -718,7 +769,7 @@ class template_codegen(abstract_generator):
             f'R_jac_{joint_name} << %s'%R_blocks_text,
             f'P_jac_{joint_name} << %s'%P_blocks_text,
             f'Eigen::VectorXd F_{joint_name} = -R_jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
+            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name}) - skew(A(coord.P_{body_name})*consts.{ubar_name})*F_{joint_name};' if def_locs \
             else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * (-P_jac_{joint_name}.transpose() * coord.L_{joint_name});',
             ]
             
@@ -761,45 +812,6 @@ class template_codegen(abstract_generator):
         reactions = '{%s}'%reactions
         
         return equations_text, reactions
-
-    def get_reactions_equations2(self):
-
-        expressions = []
-        returns = []
-        
-        row_offset = 0
-        for edge in self.mbs.constraints_graph.edges(data=True):
-            nc = edge[-1]['nc']
-            nve = edge[-1]['nve']
-            joint_name = edge[-1]['name']
-            body_name = edge[0]
-            def_locs = edge[-1]['class'].def_locs
-
-            col_offset = self.mbs.nodes_indicies[body_name] * 7
-
-            text = [
-            f'// Joint Name : {joint_name}',
-            f'const Eigen::MatrixXd Jac_{joint_name} = jacobian.block({row_offset}, {col_offset}, {nc}, 7);',
-            f'Eigen::VectorXd Q_{joint_name} = -Jac_{joint_name}.transpose() * coord.L_{joint_name};',
-            f'const Eigen::VectorXd F_{joint_name} = Q_{joint_name}.segment(0, 3);',
-            f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4) - skew(A(coord.P_{body_name})*consts.ubar_{body_name}_{joint_name})*F_{joint_name};' if def_locs \
-            else f'Eigen::VectorXd T_{joint_name} = 0.5*E(coord.P_{body_name}) * Q_{joint_name}.segment(3, 4);',
-            ]
-            
-            text = '\n'.join(text)        
-            expressions.append(text)
-            row_offset += nc
-
-            returns.append(f'F_{joint_name}')
-            returns.append(f'T_{joint_name}')
-        
-        expressions_text = '\n\n'.join(expressions)
-        expressions_text = textwrap.indent(expressions_text, 4*' ').lstrip()
-
-        reactions_return = ',\n'.join(returns) + ';'
-        reactions_return = textwrap.indent(reactions_return, 8*' ').lstrip()
-
-        return expressions_text, reactions_return
 
 
 
