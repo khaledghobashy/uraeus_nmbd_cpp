@@ -10,7 +10,7 @@ A **double wishbone** mechanism is a type of  independent suspension mechanism u
 
 This kinematic chain is augmented with a another simple chain that controls the vertical motion of the wheel-assembly, this simple chain can be a direct-acting coil-over that is connected to either one of the control arms and the chassis, or can be a rocker-push/pull rod mechanism that is connected to the coil-over.
 
-![Figure 1 - System Layout](double_wishbone.png)
+![Figure 1 - System Layout](double_wishbone.png?raw=true)
 
 *Figure 1 - Double Wishbone Layout*
 
