@@ -45,7 +45,7 @@
 - [Git](https://git-scm.com/downloads), for cloning the project repository.
 - [CMake](https://cmake.org/download/), for build-systems generation. The project requires cmake 3.10 or higher.
 - A modern C++ compiler supporting C++17 standards. 
-  The project is tested with the [GNU](https://gcc.gnu.org/) gcc compiler on a Linux machine and the Microsoft C++ build tools [MSVC](https://visualstudio.microsoft.com/visual-cpp-build-tools/) on a Windows-10 machine.
+  The project is tested with the **[gcc](https://gcc.gnu.org/)** 10 compiler on a Linux machine and the Microsoft C++ build tools [**MSVC**](https://visualstudio.microsoft.com/visual-cpp-build-tools/) on a Windows-10 machine.
 
 
 
@@ -109,7 +109,11 @@ Now, the project can be found via other `cmake` projects, where the paths for th
 
 ## Examples
 
-*t.b.c ...*
+The repository provides several examples in a form of jupyter notebooks that can be tested on the cloud using [Google Colaboratory](https://colab.research.google.com/) without the need for any setup on your local machine.
+
+- [Double Wishbone Direct Acting](https://colab.research.google.com/github/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/double_wishbone_direct_acting/double_wishbone_direct_acting.ipynb#scrollTo=oNp9xjb0vO4V)
+
+
 
 ## Roadmap
 
