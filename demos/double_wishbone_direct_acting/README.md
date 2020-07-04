@@ -12,7 +12,7 @@ This kinematic chain is augmented with a another simple chain that controls the 
 
 ![Figure 1 - System Layout](double_wishbone.png)
 
-*Figure 1 - Double Wishbone Layout*
+*Figure 1 - [Double Wishbone Layout](https://github.com/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/double_wishbone_direct_acting/double_wishbone.png)*
 
 --------------------------------------
 
