@@ -80,7 +80,7 @@ public:
     Eigen::SparseLU<SparseBlock> LUSolver;
     Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
-    Explicit_RK4<Solver<T>> integrator;
+    Explicit_RK23<Solver<T>> integrator;
     
     double t;
     double step_size;
@@ -461,7 +461,7 @@ void Solver<T>::AdvanceTimeStep()
     //std::cout << "Calling integrator.Advance(this, StateVectorD0, StateVectorD1) \n";
     integrator.Advance(this, StateVectorD0, StateVectorD1);
     //std::cout << "StateVectorD0 = integrator.y \n";
-    StateVectorD0 = integrator.y;
+    //StateVectorD0 = integrator.y;
 
 }
 
@@ -563,6 +563,7 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd _StateVectorD0, double t, doubl
 
     const auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
+    Eigen::VectorXd _StateVectorD1(2 * model.n);
     StateVectorD1 << y2, y3;
 
     //std::cout << "\nStateVectorD0 = " << StateVectorD0.transpose() << "\n";

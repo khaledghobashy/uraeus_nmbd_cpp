@@ -130,7 +130,8 @@ void Explicit_RK23<S>::Advance(S* solver, Eigen::VectorXd StateVectorD0, Eigen::
         K.row(i) = SSODE(solver, StateVectorD0 + dy, t + (c * h), h);
     }
 
-    y = StateVectorD0 + (h * K.topRows(n_stages).transpose() * B);
+    y = StateVectorD0 + (h * K.transpose() * B);
+    SSODE(solver, y, t + h, h);
     t += h;
 
 };
