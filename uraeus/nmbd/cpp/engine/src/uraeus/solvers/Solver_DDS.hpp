@@ -80,7 +80,7 @@ public:
     Eigen::SparseLU<SparseBlock> LUSolver;
     Eigen::SparseQR<SparseBlock, Eigen::COLAMDOrdering<int>> QRSolver;
 
-    Explicit_RK4<Solver<T>> integrator;
+    Explicit_RK23<Solver<T>> integrator;
     
     double t;
     double step_size;
