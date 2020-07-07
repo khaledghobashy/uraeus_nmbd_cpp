@@ -27,7 +27,8 @@ void Simulation::Solve(double simTime, double steps)
 
 void Simulation::SaveResults(std::string location, std::string name)
 {
-    Sim.ExportStates(location, name);    
+    Sim.ExportStates(location, name);
+    Sim.ExportReactions(location, name);
 };
 
 
