@@ -380,6 +380,7 @@ void Solver<T>::Solve()
     for (size_t i = 1; i < samples; i++)
     {
         print_progress(begin, samples, i);
+        //std::cout << i << " -> DOF : " << CoordinatesNames[coord_indices[0]] << "\n";
 
         if (true) 
         {
@@ -393,7 +394,6 @@ void Solver<T>::Solve()
         }
 
         eval_rct_eq();
-
         UpdateHistories();
 
     };
@@ -425,8 +425,7 @@ void Solver<T>::PartitionSystemCoordinates()
         
     ExtractIndependentIndices(indices);
 
-    //JacobianAssembler.AssembleTripletList(model.jac_eq);
-    JacobianAssembler.Assemble(JacobianMod, extra_triplets);
+    //JacobianAssembler.Assemble(JacobianMod, extra_triplets);
 
 };
 
@@ -462,6 +461,7 @@ void Solver<T>::AdvanceTimeStep()
     integrator.Advance(this, StateVectorD0, StateVectorD1);
     //std::cout << "StateVectorD0 = integrator.y \n";
     //StateVectorD0 = integrator.y;
+    SSODE(integrator.y, integrator.t, integrator.h);
 
 }
 
@@ -563,7 +563,6 @@ Eigen::VectorXd Solver<T>::SSODE(Eigen::VectorXd _StateVectorD0, double t, doubl
 
     const auto& y3 = (CoordinatesPermutation * qdd).segment(model.nc, dof);
 
-    Eigen::VectorXd _StateVectorD1(2 * model.n);
     StateVectorD1 << y2, y3;
 
     //std::cout << "\nStateVectorD0 = " << StateVectorD0.transpose() << "\n";
