@@ -109,9 +109,33 @@ Now, the project can be found via other `cmake` projects, where the paths for th
 
 ## Examples
 
-The repository provides several examples in a form of jupyter notebooks that can be tested on the cloud using [Google Colaboratory](https://colab.research.google.com/) without the need for any setup on your local machine.
+The repository provides several examples in a form of **jupyter notebooks** that can be tested on the cloud using [Google Colaboratory](https://colab.research.google.com/) without the need for any setup on your local machine. The notebooks uses [**uraeus.smbd**](https://https//github.com/khaledghobashy/uraeus-smbd) to model the system symbolically, then using [**uraeus.nmbd.cpp**](https://github.com/khaledghobashy/uraeus_nmbd_cpp) to perform the numerical simulation of the modelled system.
 
-- [Double Wishbone Direct Acting](https://colab.research.google.com/github/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/double_wishbone_direct_acting/double_wishbone_direct_acting.ipynb#scrollTo=oNp9xjb0vO4V)
+The implementation in this notebook can be broken down into main **six** steps as follows:
+
+1. **Colab Machine Setup.**
+   We first starts by setting up the Colab machine environment by installing the needed tools and packages.
+2. **Symbolic Model Creation.**
+   Here we create the symbolic topology of the system as well as a symbolic configuration.
+3. **Numerical Environment Generation.**
+   We then pass our symbolic model to code-generators to generate the code files needed for numerical simulation.
+4. **Numerical Simulation.**
+   We then use these code files to create our simulation instances and run the numerical simulation.
+5. **Data Post-Processing.**
+   Now, we can use the raw results' data to evaluate the required characteristics and create plots.
+6. **3D Visualization.**
+   Finally, we use **uraeus.visenv.babylon** to visualize and animate our system in 3D.
+
+
+
+[**Double Wishbone Direct Acting**](https://colab.research.google.com/github/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/double_wishbone_direct_acting/double_wishbone_direct_acting.ipynb#scrollTo=oNp9xjb0vO4V)
+A kinematically driven system representing an independent suspension mechanism used for automotive.
+
+[**Spatial Fourbar**]( https://colab.research.google.com/github/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/spatial_fourbar/spatial_fourbar.ipynb )
+A dynamically driven system representing a closed-chain four-bar linkage driven by a torque at the crank.
+
+[**Pendulum**]( https://colab.research.google.com/github/khaledghobashy/uraeus_nmbd_cpp/blob/master/demos/pendulum/pendulum.ipynb )
+A dynamically driven system representing a simple pendulum subjected to the gravitational forces only .
 
 
 
