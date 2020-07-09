@@ -139,7 +139,7 @@ private:
     void AdvanceTimeStep();
 
     void UpdateHistories();
-    void ClearHistories();
+    void ResetStates();
     void ConstructCoordinatesNames();
     void ExportState(std::string location, std::string name, int id);
     
@@ -239,13 +239,20 @@ void Solver<T>::UpdateHistories()
 };
 
 template<class T>
-void Solver<T>::ClearHistories()
+void Solver<T>::ResetStates()
 {
-    pos_history.clear();
-    vel_history.clear();
-    acc_history.clear();
-    lgr_history.clear();
-    rct_history.clear();
+    if (pos_history.size() > 0)
+    {
+        q  = pos_history[0];
+        qd = vel_history[0];
+
+        pos_history.clear();
+        vel_history.clear();
+        acc_history.clear();
+        lgr_history.clear();
+        rct_history.clear();
+    };
+
 };
 
 // ============================================================================ 
@@ -369,7 +376,7 @@ void Solver<T>::Solve()
     integrator.h = dt;
     integrator.t = 0;
 
-    ClearHistories();
+    ResetStates();
 
     pos_history.reserve(samples);
     vel_history.reserve(samples);
