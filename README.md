@@ -111,7 +111,7 @@ Now, the project can be found via other `cmake` projects, where the paths for th
 
 The repository provides several examples in a form of **jupyter notebooks** that can be tested on the cloud using [Google Colaboratory](https://colab.research.google.com/) without the need for any setup on your local machine. The notebooks uses [**uraeus.smbd**](https://https//github.com/khaledghobashy/uraeus-smbd) to model the system symbolically, then using [**uraeus.nmbd.cpp**](https://github.com/khaledghobashy/uraeus_nmbd_cpp) to perform the numerical simulation of the modelled system.
 
-The implementation in this notebook can be broken down into main **six** steps as follows:
+The implementation in this notebook can be broken down into **six** main steps as follows:
 
 1. **Colab Machine Setup.**
    We first starts by setting up the Colab machine environment by installing the needed tools and packages.
