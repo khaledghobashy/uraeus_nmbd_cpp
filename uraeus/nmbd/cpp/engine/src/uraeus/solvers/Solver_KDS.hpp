@@ -173,8 +173,8 @@ void Solver<T>::Solve()
     {
         print_progress(begin, samples, i);
 
-        t = time_array(i) ;
-        this->SetTime(t) ;
+        this->t = this->time_array(i) ;
+        this->SetTime(this->t) ;
 
         this->q += (this->qd * dt) + (0.5 * this->qdd * (dt*dt));
 
