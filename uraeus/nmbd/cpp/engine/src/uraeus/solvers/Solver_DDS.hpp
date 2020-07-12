@@ -45,19 +45,18 @@ namespace dds
 template <class T>
 class Solver : public BaseSolver<T>
 {
-    //using BaseSolver<T>;
- 
+
 public:
     SparseBlock JacobianMod;
 
-    MatrixAssembler JacobianAssembler {this->model.jac_rows, this->model.jac_cols, (this->model.n - this->model.nc)};
+    MatrixAssembler JacobianAssembler {this->model.jac_rows, this->model.jac_cols, (T::n - T::nc)};
     
-    Eigen::SparseMatrix<double, Eigen::RowMajor> LeftMatrix  {this->model.n + this->model.nc, this->model.n};
-    Eigen::SparseMatrix<double, Eigen::RowMajor> RightMatrix {this->model.n + this->model.nc, this->model.nc};
-    Eigen::SparseMatrix<double, Eigen::ColMajor> CoeffMatrix {this->model.n + this->model.nc, this->model.n + this->model.nc};
-    Eigen::PermutationMatrix<T::n, T::n, int> CoordinatesPermutation{this->model.n};
+    Eigen::SparseMatrix<double, Eigen::RowMajor> LeftMatrix  {T::n + T::nc, T::n};
+    Eigen::SparseMatrix<double, Eigen::RowMajor> RightMatrix {T::n + T::nc, T::nc};
+    Eigen::SparseMatrix<double, Eigen::ColMajor> CoeffMatrix {T::n + T::nc, T::n + T::nc};
+    Eigen::PermutationMatrix<T::n, T::n, int> CoordinatesPermutation{T::n};
     
-    Eigen::VectorXd EOM_rhs{this->model.n + this->model.nc};
+    Eigen::VectorXd EOM_rhs{T::n + T::nc};
     Eigen::VectorXd StateVectorD0;
     Eigen::VectorXd StateVectorD1;
 
@@ -97,7 +96,7 @@ template<class T>
 Solver<T>::Solver()
     : BaseSolver<T>::BaseSolver(), JacobianMod(T::n, T::n)
 {
-    dof = this->model.n - this->model.nc;
+    dof = T::n - T::nc;
     extra_triplets.reserve(dof);
 
     StateVectorD0.resize(2 * dof);
@@ -117,7 +116,7 @@ void Solver<T>::eval_jac_eq()
     this->model.eval_jac_eq();
     JacobianAssembler.AssembleTripletList(this->model.jac_eq);
     JacobianAssembler.Assemble(this->Jacobian);
-    JacobianAssembler.Assemble(this->JacobianMod, this->extra_triplets);
+    JacobianAssembler.Assemble(JacobianMod, extra_triplets);
 };
 
 
@@ -136,7 +135,7 @@ void Solver<T>::SolveConstraints()
    //std::cout << "Computing Matrix A " << "\n";
     //std::cout << "JacobianMod = \n" << JacobianMod << "\n";
     this->LUSolver.compute(JacobianMod);
-    //std::cout << this->LUSolver.logAbsDeterminant() << "\n";
+    //std::cout << LUSolver.logAbsDeterminant() << "\n";
 
    //std::cout << "Solving for Vector b " << "\n";
    //std::cout << "b = \n" << b << "\n";
@@ -154,7 +153,7 @@ void Solver<T>::SolveConstraints()
 
         if (itr%5 == 0 && itr!=0)
         {
-            this->eval_jac_eq();
+            eval_jac_eq();
             this->LUSolver.compute(JacobianMod);
             error = this->LUSolver.solve(-b);
         };
@@ -168,8 +167,8 @@ void Solver<T>::SolveConstraints()
         itr++;
     };
     
-    this->eval_jac_eq();
-    this->LUSolver.compute(this->JacobianMod);
+    eval_jac_eq();
+    this->LUSolver.compute(JacobianMod);
 };
 
 // ============================================================================ 
@@ -331,7 +330,7 @@ void Solver<T>::SolveEOM()
     EOM_rhs << this->eval_frc_eq(), -this->eval_acc_eq();
 
     //std::cout << "Calling LUSolver.compute(CoeffMatrix) !!\n";
-    LUSolver.compute(CoeffMatrix);
+    this->LUSolver.compute(CoeffMatrix);
     //std::cout << "LUSolver.info = \n" << LUSolver.info() << "\n";
     //std::cout << "Calling LUSolver.solve(EOM_rhs) !!\n";
     auto x = this->LUSolver.solve(EOM_rhs);

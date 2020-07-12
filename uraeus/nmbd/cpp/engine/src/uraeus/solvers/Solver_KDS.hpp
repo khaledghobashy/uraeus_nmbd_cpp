@@ -60,7 +60,7 @@ private:
 // ============================================================================
 template<class T>
 Solver<T>::Solver()
-    : BaseSolver()
+    : BaseSolver<T>::BaseSolver()
 {};
 
 // ============================================================================ 
@@ -70,12 +70,12 @@ Solver<T>::Solver()
 template<class T>
 void Solver<T>::solve_lgr_multipliers()
 {
-    eval_mas_eq();
-    Eigen::VectorXd ext_frc = eval_frc_eq();
-    Eigen::VectorXd inertia = MassMatrix * qdd;
+    this->eval_mas_eq();
+    Eigen::VectorXd ext_frc = this->eval_frc_eq();
+    Eigen::VectorXd inertia = this->MassMatrix * this->qdd;
     Eigen::VectorXd rhs = ext_frc - inertia;
-    LUSolver.compute(Jacobian.transpose());
-    lgr = LUSolver.solve(rhs);
+    this->LUSolver.compute(this->Jacobian.transpose());
+    this->lgr = this->LUSolver.solve(rhs);
 };
 
 // ============================================================================ 
@@ -89,14 +89,14 @@ void Solver<T>::SolveConstraints()
     // Creating a LUSolver object.
 
     //std::cout << "Evaluating Pos_Eq " << "\n";
-    auto&& b = eval_pos_eq();
+    auto&& b = this->eval_pos_eq();
     //std::cout << "Evaluating Jac_Eq " << "\n";
-    eval_jac_eq();
+    this->eval_jac_eq();
     //std::cout << "Computing Matrix A " << "\n";
-    LUSolver.compute(Jacobian);
+    this->LUSolver.compute(this->Jacobian);
 
     //std::cout << "Solving for Vector b " << "\n";
-    Eigen::VectorXd error = LUSolver.solve(-b);
+    Eigen::VectorXd error = this->LUSolver.solve(-b);
 
     //std::cout << "Entring While Loop " << "\n";
     int itr = 0;
@@ -105,15 +105,15 @@ void Solver<T>::SolveConstraints()
         //std::cout << "Error e = " << error.norm() << "\n";
         //guess += error;
         //q = guess;
-        q += error;
-        b = eval_pos_eq();
-        error = LUSolver.solve(-b);
+        this->q += error;
+        b = this->eval_pos_eq();
+        error = this->LUSolver.solve(-b);
 
         if (itr%5 == 0 && itr!=0)
         {
-            eval_jac_eq();
-            LUSolver.compute(Jacobian);
-            error = LUSolver.solve(-b);
+            this->eval_jac_eq();
+            this->LUSolver.compute(this->Jacobian);
+            error = this->LUSolver.solve(-b);
         };
 
         if (itr>50)
@@ -125,8 +125,8 @@ void Solver<T>::SolveConstraints()
         itr++;
     };
     
-    eval_jac_eq();
-    LUSolver.compute(Jacobian);
+    this->eval_jac_eq();
+    this->LUSolver.compute(this->Jacobian);
 };
 
 // ============================================================================ 
@@ -138,32 +138,32 @@ void Solver<T>::Solve()
 {
     std::cout << "Starting Solver ..." << "\n";
     
-    auto& dt = step_size;
-    auto samples = time_array.size();
+    auto& dt = this->step_size;
+    auto samples = this->time_array.size();
 
-    ResetStates();
+    this->ResetStates();
 
-    pos_history.reserve(samples);
-    vel_history.reserve(samples);
-    acc_history.reserve(samples);
-    lgr_history.reserve(samples);
-    rct_history.reserve(samples);
+    this->pos_history.reserve(samples);
+    this->vel_history.reserve(samples);
+    this->acc_history.reserve(samples);
+    this->lgr_history.reserve(samples);
+    this->rct_history.reserve(samples);
     
     //std::cout << "Computing Jacobian" << "\n";
-    eval_jac_eq();
+    this->eval_jac_eq();
     //std::cout << "Factorizing Jacobian" << "\n";
-    LUSolver.compute(Jacobian);
+    this->LUSolver.compute(this->Jacobian);
 
     //std::cout << "Solving for Velocity" << "\n";
-    qd = LUSolver.solve(-eval_vel_eq());
+    this->qd = this->LUSolver.solve(-this->eval_vel_eq());
     
     //std::cout << "Solving for Accelerations" << "\n";
-    qdd = LUSolver.solve(-eval_acc_eq());
+    this->qdd = this->LUSolver.solve(-this->eval_acc_eq());
 
-    solve_lgr_multipliers();
-    eval_rct_eq();
+    this->solve_lgr_multipliers();
+    this->eval_rct_eq();
 
-    UpdateHistories();
+    this->UpdateHistories();
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
@@ -173,28 +173,28 @@ void Solver<T>::Solve()
     {
         print_progress(begin, samples, i);
 
-        t = time_array(i) ;
-        SetTime(t) ;
+        this->t = this->time_array(i) ;
+        this->SetTime(this->t) ;
 
-        q += (qd * dt) + (0.5 * qdd * (dt*dt));
+        this->q += (this->qd * dt) + (0.5 * this->qdd * (dt*dt));
 
-        SolveConstraints();
+        this->SolveConstraints();
 
-        qd  = LUSolver.solve(-eval_vel_eq());
-        qdd = LUSolver.solve(-eval_acc_eq());
+        this->qd  = this->LUSolver.solve(-this->eval_vel_eq());
+        this->qdd = this->LUSolver.solve(-this->eval_acc_eq());
 
-        solve_lgr_multipliers();
-        eval_rct_eq();
+        this->solve_lgr_multipliers();
+        this->eval_rct_eq();
         
-        UpdateHistories();
+        this->UpdateHistories();
 
     };
 
-    results[0] = &pos_history;
-    results[1] = &vel_history;
-    results[2] = &acc_history;
-    results[3] = &lgr_history;
-    results[4] = &rct_history;
+    this->results[0] = &this->pos_history;
+    this->results[1] = &this->vel_history;
+    this->results[2] = &this->acc_history;
+    this->results[3] = &this->lgr_history;
+    this->results[4] = &this->rct_history;
 
     std::cout << "\n";
     std::cout << "Finished Solver ... \n";
@@ -203,6 +203,3 @@ void Solver<T>::Solve()
 
 }; // namespace kds
 
-// ============================================================================ 
-// ============================================================================
-// ============================================================================
