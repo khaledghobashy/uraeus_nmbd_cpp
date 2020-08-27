@@ -48,14 +48,14 @@ Usage
 - Simple interaction with the generated models through a minimal API 
   ``Simulation`` class,  exposing only the needed functionalities.
 
-   - Loading model configuration data from JSON file.
-   - Setting user-defined functions to control motion-actuators and generic 
-     force elements using normal C++ free-functions and lambda functions.
-   - Simulating the model for the desired time period and desired step-size.
-   - Saving the simulation results (positions, velocities, accelerations, 
-     reactions) as csv files, that can be used later for post-processing and 
-     visualizations in  
-     `uraeus.visenv.babylon <https://github.com/khaledghobashy/uraeus_visenv_babylon>`_.
+  - Loading model configuration data from JSON file.
+  - Setting user-defined functions to control motion-actuators and generic 
+    force elements using normal C++ free-functions and lambda functions.
+  - Simulating the model for the desired time period and desired step-size.
+  - Saving the simulation results (positions, velocities, accelerations, 
+    reactions) as csv files, that can be used later for post-processing and 
+    visualizations in  
+    `uraeus.visenv.babylon <https://github.com/khaledghobashy/uraeus_visenv_babylon>`_.
 
 - Simple interaction with the generated models through python.
 
