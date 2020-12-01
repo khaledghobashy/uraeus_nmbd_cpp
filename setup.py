@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 short_description = 'Numerical simulation environment of constrained multi-body systems in C++.'
@@ -30,5 +30,6 @@ setuptools.setup(
     ],
     python_requires = '>=3.6',
     install_requires=[
-          'uraeus.smbd>=0.0.0.dev1',],
+          'uraeus.smbd>=0.0.0.dev1',
+          'cython',],
 )
